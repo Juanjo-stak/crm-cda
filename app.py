@@ -7,28 +7,54 @@ import os
 # =========================
 # LOGIN
 # =========================
-USUARIO_CORRECTO = "juanjo"
-CLAVE_CORRECTA = "cda2026"
+import json
+
+ARCHIVO_USUARIOS = "usuarios.json"
+
+def cargar_usuarios():
+    with open(ARCHIVO_USUARIOS, "r") as f:
+        return json.load(f)
+
+def guardar_usuarios(data):
+    with open(ARCHIVO_USUARIOS, "w") as f:
+        json.dump(data, f, indent=4)
 
 if "login" not in st.session_state:
     st.session_state.login = False
 
-def login():
-    st.title("🔐 Acceso CRM CDA")
+if "usuario" not in st.session_state:
+    st.session_state.usuario = None
 
-    u = st.text_input("Usuario")
-    c = st.text_input("Contraseña", type="password")
+if "rol" not in st.session_state:
+    st.session_state.rol = None
+
+
+def login():
+
+    st.title("🔐 CRM CDA - Acceso")
+
+    usuario = st.text_input("Usuario")
+    password = st.text_input("Contraseña", type="password")
 
     if st.button("Ingresar"):
-        if u == USUARIO_CORRECTO and c == CLAVE_CORRECTA:
+
+        usuarios = cargar_usuarios()
+
+        if usuario in usuarios and usuarios[usuario]["password"] == password:
+
             st.session_state.login = True
+            st.session_state.usuario = usuario
+            st.session_state.rol = usuarios[usuario]["rol"]
+
             st.rerun()
         else:
             st.error("Credenciales incorrectas")
 
+
 if not st.session_state.login:
     login()
     st.stop()
+
 
 # =========================
 # CONFIG
@@ -55,6 +81,29 @@ if archivo_subido:
         f.write(archivo_subido.getbuffer())
     st.sidebar.success("✅ Base guardada")
     st.rerun()
+# =========================
+# PANEL ADMIN
+# =========================
+if st.session_state.rol == "admin":
+
+    st.sidebar.divider()
+    st.sidebar.subheader("👑 Panel Admin")
+
+    usuarios = cargar_usuarios()
+
+    nuevo_user = st.sidebar.text_input("Nuevo usuario")
+    nueva_pass = st.sidebar.text_input("Clave", type="password")
+    rol = st.sidebar.selectbox("Rol", ["asesor","viewer","admin"])
+
+    if st.sidebar.button("Crear usuario"):
+
+        usuarios[nuevo_user] = {
+            "password": nueva_pass,
+            "rol": rol
+        }
+
+        guardar_usuarios(usuarios)
+        st.sidebar.success("Usuario creado ✅")
 
 # =========================
 # LISTAR BASES DISPONIBLES
