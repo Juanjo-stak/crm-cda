@@ -1,188 +1,219 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  Alert,
-} from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import streamlit as st
+import pandas as pd
+import urllib.parse
+from io import BytesIO
+import os
 
-/* ================= LOGIN ================= */
+# =========================
+# LOGIN
+# =========================
+USUARIO_CORRECTO = "juanjo"
+CLAVE_CORRECTA = "cda2026"
 
-const USER = "admin";
-const PASS = "1234";
+if "login" not in st.session_state:
+    st.session_state.login = False
 
-/* ================= APP ================= */
+def login():
+    st.title("🔐 Acceso CRM CDA")
 
-export default function App() {
-  const [logged, setLogged] = useState(false);
-  const [user, setUser] = useState("");
-  const [pass, setPass] = useState("");
+    u = st.text_input("Usuario")
+    c = st.text_input("Contraseña", type="password")
 
-  const [databases, setDatabases] = useState([]);
-  const [newDB, setNewDB] = useState("");
-  const [selectedDB, setSelectedDB] = useState(null);
+    if st.button("Ingresar"):
+        if u == USUARIO_CORRECTO and c == CLAVE_CORRECTA:
+            st.session_state.login = True
+            st.rerun()
+        else:
+            st.error("Credenciales incorrectas")
 
-  /* ===== CARGAR BASES GUARDADAS ===== */
+if not st.session_state.login:
+    login()
+    st.stop()
 
-  useEffect(() => {
-    loadDatabases();
-  }, []);
+# =========================
+# CONFIG
+# =========================
+st.set_page_config(page_title="CRM CDA", layout="wide")
+st.title("🚗 CRM Renovaciones CDA")
 
-  const loadDatabases = async () => {
-    const data = await AsyncStorage.getItem("DATABASES");
-    if (data) {
-      setDatabases(JSON.parse(data));
+CARPETA_BASES = "bases"
+os.makedirs(CARPETA_BASES, exist_ok=True)
+
+# =========================
+# SUBIR BASE NUEVA
+# =========================
+st.sidebar.header("📂 Bases de datos")
+
+archivo_subido = st.sidebar.file_uploader(
+    "Subir nueva base",
+    type=["xlsx"]
+)
+
+if archivo_subido:
+    ruta_guardado = os.path.join(CARPETA_BASES, archivo_subido.name)
+    with open(ruta_guardado, "wb") as f:
+        f.write(archivo_subido.getbuffer())
+    st.sidebar.success("✅ Base guardada")
+    st.rerun()
+
+# =========================
+# LISTAR BASES DISPONIBLES
+# =========================
+bases_disponibles = [
+    f for f in os.listdir(CARPETA_BASES)
+    if f.endswith(".xlsx")
+]
+
+if not bases_disponibles:
+    st.warning("⚠️ No hay bases cargadas aún")
+    st.stop()
+
+base_seleccionada = st.sidebar.selectbox(
+    "Seleccionar base",
+    bases_disponibles
+)
+
+ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
+
+# =========================
+# CARGAR DATOS
+# =========================
+@st.cache_data
+def cargar_datos(archivo):
+    df = pd.read_excel(archivo)
+
+    df.columns = df.columns.str.strip()
+
+    columnas = {
+        "Placa ": "Placa",
+        "Cliente": "Cliente",
+        "Telefono": "Telefono",
+        "Fecha": "Fecha_Renovacion",
+        "fecca": "Fecha_Renovacion",
+        "sede": "Sede"
     }
-  };
 
-  /* ===== GUARDAR BASES ===== */
+    df.rename(columns=columnas, inplace=True)
 
-  const saveDatabases = async (list) => {
-    await AsyncStorage.setItem("DATABASES", JSON.stringify(list));
-    setDatabases(list);
-  };
+    df["Fecha_Renovacion"] = pd.to_datetime(
+        df["Fecha_Renovacion"],
+        errors="coerce",
+        dayfirst=True
+    )
 
-  /* ===== LOGIN ===== */
+    df = df[df["Fecha_Renovacion"].notna()]
 
-  const login = () => {
-    if (user === USER && pass === PASS) {
-      setLogged(true);
-    } else {
-      Alert.alert("Error", "Usuario o contraseña incorrectos");
-    }
-  };
+    if "Estado" not in df.columns:
+        df["Estado"] = "Pendiente"
 
-  /* ===== CREAR BASE ===== */
+    return df
 
-  const createDatabase = () => {
-    if (!newDB.trim()) return;
+df = cargar_datos(ARCHIVO)
 
-    const updated = [...databases, newDB];
-    saveDatabases(updated);
-    setNewDB("");
+st.success(f"✅ Base activa: {base_seleccionada}")
 
-    Alert.alert(
-      "Base creada",
-      `Se guardó en el celular como:\n${newDB}`
-    );
-  };
+# =========================
+# DASHBOARD
+# =========================
+st.markdown("## 📊 Dashboard")
 
-  /* ===== SELECCIONAR BASE ===== */
+c1,c2,c3,c4,c5 = st.columns(5)
 
-  const selectDatabase = async (name) => {
-    setSelectedDB(name);
-    await AsyncStorage.setItem("ACTIVE_DB", name);
-  };
+c1.metric("Total", len(df))
+c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
+c3.metric("Contactados", (df["Estado"]=="Contactado").sum())
+c4.metric("Agendados", (df["Estado"]=="Agendado").sum())
+c5.metric("Renovados", (df["Estado"]=="Renovado").sum())
 
-  /* ================= LOGIN SCREEN ================= */
+# =========================
+# FILTROS
+# =========================
+st.sidebar.header("🔎 Filtros")
 
-  if (!logged) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Iniciar Sesión</Text>
+fecha_inicio = st.sidebar.date_input(
+    "Desde",
+    df["Fecha_Renovacion"].min().date()
+)
 
-        <TextInput
-          placeholder="Usuario"
-          style={styles.input}
-          value={user}
-          onChangeText={setUser}
-        />
+fecha_fin = st.sidebar.date_input(
+    "Hasta",
+    df["Fecha_Renovacion"].max().date()
+)
 
-        <TextInput
-          placeholder="Contraseña"
-          secureTextEntry
-          style={styles.input}
-          value={pass}
-          onChangeText={setPass}
-        />
+sedes = ["Todas"] + sorted(df["Sede"].dropna().unique().tolist())
+sede_sel = st.sidebar.selectbox("Sede", sedes)
 
-        <TouchableOpacity style={styles.button} onPress={login}>
-          <Text style={styles.buttonText}>Entrar</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+df_filtrado = df[
+    (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
+    (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
+]
 
-  /* ================= PANEL PRINCIPAL ================= */
+if sede_sel != "Todas":
+    df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Gestor de Bases</Text>
+# =========================
+# WHATSAPP
+# =========================
+def link_whatsapp(nombre, placa, telefono, sede, fecha):
 
-      <Text style={{ marginBottom: 10 }}>
-        Base activa: {selectedDB || "Ninguna"}
-      </Text>
+    telefono = str(telefono).replace(".0","").replace(" ","")
+    if not telefono.startswith("57"):
+        telefono = "57" + telefono
 
-      {/* CREAR BASE */}
-      <TextInput
-        placeholder="Nombre nueva base"
-        style={styles.input}
-        value={newDB}
-        onChangeText={setNewDB}
-      />
+    fecha_texto = fecha.strftime("%A %d de %B de %Y")
 
-      <TouchableOpacity style={styles.button} onPress={createDatabase}>
-        <Text style={styles.buttonText}>Crear Base</Text>
-      </TouchableOpacity>
+    mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
-      {/* LISTA BASES */}
-      <FlatList
-        data={databases}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.dbItem}
-            onPress={() => selectDatabase(item)}
-          >
-            <Text style={{ color: "white" }}>{item}</Text>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
-  );
-}
+Te escribimos del CDA del Occidente {sede}.
 
-/* ================= ESTILOS ================= */
+Tu vehículo con placa {placa} vence el {fecha_texto}.
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#111",
-    padding: 20,
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 24,
-    color: "white",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  input: {
-    backgroundColor: "white",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  button: {
-    backgroundColor: "#25D366",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  dbItem: {
-    backgroundColor: "#333",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-});
+¿Deseas agendar tu revisión hoy? 🚗✅"""
 
+    mensaje = urllib.parse.quote(mensaje)
+
+    return f"https://api.whatsapp.com/send?phone={telefono}&text={mensaje}"
+
+# =========================
+# LISTADO
+# =========================
+estados = ["Pendiente","Contactado","Agendado","Renovado"]
+
+for i,row in df_filtrado.iterrows():
+
+    col1,col2,col3,col4 = st.columns([2,2,2,2])
+
+    col1.write(f"**{row['Placa']}**")
+    col1.write(row["Cliente"])
+
+    col2.write(row["Fecha_Renovacion"].date())
+    col2.write(row["Sede"])
+
+    estado = col3.selectbox(
+        "Estado",
+        estados,
+        index=estados.index(row["Estado"]),
+        key=f"estado_{i}"
+    )
+
+    df.loc[i,"Estado"] = estado
+
+    col4.link_button(
+        "📲 WhatsApp",
+        link_whatsapp(
+            row["Cliente"],
+            row["Placa"],
+            row["Telefono"],
+            row["Sede"],
+            row["Fecha_Renovacion"]
+        )
+    )
+
+    st.divider()
+
+# =========================
+# GUARDAR
+# =========================
+if st.button("💾 Guardar cambios"):
+    df.to_excel(ARCHIVO, index=False)
+    st.success("Cambios guardados ✅")
