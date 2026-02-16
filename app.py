@@ -128,22 +128,7 @@ df = cargar_datos(ARCHIVO)
 
 st.success(f"✅ Base activa: {base_seleccionada}")
 
-# =========================
-# SUBIR BASE NUEVA
-# =========================
-st.sidebar.header("📂 Bases de datos")
 
-archivo_subido = st.sidebar.file_uploader(
-    "Subir nueva base",
-    type=["xlsx"]
-)
-
-if archivo_subido:
-    ruta_guardado = os.path.join(CARPETA_BASES, archivo_subido.name)
-    with open(ruta_guardado, "wb") as f:
-        f.write(archivo_subido.getbuffer())
-    st.sidebar.success("✅ Base guardada")
-    st.rerun()
 # =========================
 # LISTAR BASES DISPONIBLES
 # =========================
@@ -162,7 +147,22 @@ base_seleccionada = st.sidebar.selectbox(
 )
 
 ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
+# =========================
+# SUBIR BASE NUEVA
+# =========================
+st.sidebar.header("📂 Bases de datos")
 
+archivo_subido = st.sidebar.file_uploader(
+    "Subir nueva base",
+    type=["xlsx"]
+)
+
+if archivo_subido:
+    ruta_guardado = os.path.join(CARPETA_BASES, archivo_subido.name)
+    with open(ruta_guardado, "wb") as f:
+        f.write(archivo_subido.getbuffer())
+    st.sidebar.success("✅ Base guardada")
+    st.rerun()
 # =========================
 # DASHBOARD
 # =========================
