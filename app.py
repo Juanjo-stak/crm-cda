@@ -4,9 +4,6 @@ import urllib.parse
 from io import BytesIO
 import os
 
-# =========================
-# LOGIN
-# =========================
 import json
 
 ARCHIVO_USUARIOS = "usuarios.json"
@@ -54,18 +51,6 @@ def login():
 if not st.session_state.login:
     login()
     st.stop()
-
-
-# =========================
-# CONFIG
-# =========================
-st.set_page_config(page_title="CRM CDA", layout="wide")
-st.title("🚗 CRM Renovaciones CDA")
-
-CARPETA_BASES = "bases"
-os.makedirs(CARPETA_BASES, exist_ok=True)
-
-
 # =========================
 # PANEL ADMIN
 # =========================
@@ -90,6 +75,51 @@ if st.session_state.rol == "admin":
         guardar_usuarios(usuarios)
         st.sidebar.success("Usuario creado ✅")
 
+
+# =========================
+# CONFIG
+# =========================
+st.set_page_config(page_title="CRM CDA", layout="wide")
+st.title("🚗 CRM Renovaciones CDA")
+
+CARPETA_BASES = "bases"
+os.makedirs(CARPETA_BASES, exist_ok=True)
+
+# =========================
+# SUBIR BASE NUEVA
+# =========================
+st.sidebar.header("📂 Bases de datos")
+
+archivo_subido = st.sidebar.file_uploader(
+    "Subir nueva base",
+    type=["xlsx"]
+)
+
+if archivo_subido:
+    ruta_guardado = os.path.join(CARPETA_BASES, archivo_subido.name)
+    with open(ruta_guardado, "wb") as f:
+        f.write(archivo_subido.getbuffer())
+    st.sidebar.success("✅ Base guardada")
+    st.rerun()
+
+# =========================
+# LISTAR BASES DISPONIBLES
+# =========================
+bases_disponibles = [
+    f for f in os.listdir(CARPETA_BASES)
+    if f.endswith(".xlsx")
+]
+
+if not bases_disponibles:
+    st.warning("⚠️ No hay bases cargadas aún")
+    st.stop()
+
+base_seleccionada = st.sidebar.selectbox(
+    "Seleccionar base",
+    bases_disponibles
+)
+
+ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
 
 # =========================
 # CARGAR DATOS
@@ -128,41 +158,6 @@ df = cargar_datos(ARCHIVO)
 
 st.success(f"✅ Base activa: {base_seleccionada}")
 
-
-# =========================
-# LISTAR BASES DISPONIBLES
-# =========================
-bases_disponibles = [
-    f for f in os.listdir(CARPETA_BASES)
-    if f.endswith(".xlsx")
-]
-
-if not bases_disponibles:
-    st.warning("⚠️ No hay bases cargadas aún")
-    st.stop()
-
-base_seleccionada = st.sidebar.selectbox(
-    "Seleccionar base",
-    bases_disponibles
-)
-
-ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
-# =========================
-# SUBIR BASE NUEVA
-# =========================
-st.sidebar.header("📂 Bases de datos")
-
-archivo_subido = st.sidebar.file_uploader(
-    "Subir nueva base",
-    type=["xlsx"]
-)
-
-if archivo_subido:
-    ruta_guardado = os.path.join(CARPETA_BASES, archivo_subido.name)
-    with open(ruta_guardado, "wb") as f:
-        f.write(archivo_subido.getbuffer())
-    st.sidebar.success("✅ Base guardada")
-    st.rerun()
 # =========================
 # DASHBOARD
 # =========================
