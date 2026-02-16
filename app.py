@@ -146,7 +146,14 @@ def generar_link_whatsapp(nombre, placa, telefono, sede, fecha):
 
 Te escribimos del CDA del Occidente {sede}.
 
-Tu vehículo con placa {placa} vence el {fecha_texto}.
+Tu vehículo con placa {placa} vence el dias = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
+meses = [
+    "enero","febrero","marzo","abril","mayo","junio",
+    "julio","agosto","septiembre","octubre","noviembre","diciembre"
+]
+
+fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month-1]} de {fecha.year}"
+
 
 ¿Deseas agendar tu revisión hoy? 🚗✅"""
 
