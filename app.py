@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import urllib.parse
 from io import BytesIO
+import os
 
 # =========================
-# LOGIN SEGURIDAD
+# LOGIN
 # =========================
 USUARIO_CORRECTO = "juanjo"
 CLAVE_CORRECTA = "cda2026"
@@ -15,46 +16,80 @@ if "login" not in st.session_state:
 def login():
     st.title("🔐 Acceso CRM CDA")
 
-    usuario = st.text_input("Usuario")
-    clave = st.text_input("Contraseña", type="password")
+    u = st.text_input("Usuario")
+    c = st.text_input("Contraseña", type="password")
 
     if st.button("Ingresar"):
-        if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
+        if u == USUARIO_CORRECTO and c == CLAVE_CORRECTA:
             st.session_state.login = True
             st.rerun()
         else:
-            st.error("❌ Usuario o contraseña incorrectos")
+            st.error("Credenciales incorrectas")
 
 if not st.session_state.login:
     login()
     st.stop()
 
 # =========================
-# CONFIGURACION PAGINA
+# CONFIG
 # =========================
 st.set_page_config(page_title="CRM CDA", layout="wide")
-
 st.title("🚗 CRM Renovaciones CDA")
 
-# =========================
-# CARGAR BASE DE DATOS
-# =========================
-ARCHIVO = "clientes.xlsx"
+CARPETA_BASES = "bases"
+os.makedirs(CARPETA_BASES, exist_ok=True)
 
+# =========================
+# SUBIR BASE NUEVA
+# =========================
+st.sidebar.header("📂 Bases de datos")
+
+archivo_subido = st.sidebar.file_uploader(
+    "Subir nueva base",
+    type=["xlsx"]
+)
+
+if archivo_subido:
+    ruta_guardado = os.path.join(CARPETA_BASES, archivo_subido.name)
+    with open(ruta_guardado, "wb") as f:
+        f.write(archivo_subido.getbuffer())
+    st.sidebar.success("✅ Base guardada")
+    st.rerun()
+
+# =========================
+# LISTAR BASES DISPONIBLES
+# =========================
+bases_disponibles = [
+    f for f in os.listdir(CARPETA_BASES)
+    if f.endswith(".xlsx")
+]
+
+if not bases_disponibles:
+    st.warning("⚠️ No hay bases cargadas aún")
+    st.stop()
+
+base_seleccionada = st.sidebar.selectbox(
+    "Seleccionar base",
+    bases_disponibles
+)
+
+ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
+
+# =========================
+# CARGAR DATOS
+# =========================
 @st.cache_data
-def cargar_datos():
-    df = pd.read_excel(ARCHIVO)
+def cargar_datos(archivo):
+    df = pd.read_excel(archivo)
 
     df.columns = df.columns.str.strip()
 
     columnas = {
         "Placa ": "Placa",
         "Cliente": "Cliente",
-        "Cedula": "Cedula",
         "Telefono": "Telefono",
-        "Telefono 2": "Telefono2",
-        "fecca": "Fecha_Renovacion",
         "Fecha": "Fecha_Renovacion",
+        "fecca": "Fecha_Renovacion",
         "sede": "Sede"
     }
 
@@ -73,43 +108,22 @@ def cargar_datos():
 
     return df
 
+df = cargar_datos(ARCHIVO)
 
-df = cargar_datos()
-
-st.success("✅ Base cargada correctamente")
+st.success(f"✅ Base activa: {base_seleccionada}")
 
 # =========================
 # DASHBOARD
 # =========================
-st.markdown("## 📊 Dashboard Comercial")
-
-total = len(df)
-pendientes = len(df[df["Estado"]=="Pendiente"])
-contactados = len(df[df["Estado"]=="Contactado"])
-agendados = len(df[df["Estado"]=="Agendado"])
-renovados = len(df[df["Estado"]=="Renovado"])
+st.markdown("## 📊 Dashboard")
 
 c1,c2,c3,c4,c5 = st.columns(5)
 
-c1.metric("📋 Total", total)
-c2.metric("🟡 Pendientes", pendientes)
-c3.metric("🔵 Contactados", contactados)
-c4.metric("🟠 Agendados", agendados)
-c5.metric("🟢 Renovados", renovados)
-
-# =========================
-# SEMAFORO VENCIMIENTO
-# =========================
-def estado_vencimiento(fecha):
-    hoy = pd.Timestamp.today().normalize()
-    dias = (fecha - hoy).days
-
-    if dias <= 0:
-        return "🔴 Urgente"
-    elif dias <= 7:
-        return "🟡 Próximo"
-    else:
-        return "🟢 A tiempo"
+c1.metric("Total", len(df))
+c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
+c3.metric("Contactados", (df["Estado"]=="Contactado").sum())
+c4.metric("Agendados", (df["Estado"]=="Agendado").sum())
+c5.metric("Renovados", (df["Estado"]=="Renovado").sum())
 
 # =========================
 # FILTROS
@@ -129,50 +143,24 @@ fecha_fin = st.sidebar.date_input(
 sedes = ["Todas"] + sorted(df["Sede"].dropna().unique().tolist())
 sede_sel = st.sidebar.selectbox("Sede", sedes)
 
-df_filtrado = df.copy()
-
-df_filtrado = df_filtrado[
-    (df_filtrado["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
-    (df_filtrado["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
+df_filtrado = df[
+    (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
+    (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
 ]
 
 if sede_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
 
-st.subheader(f"📋 Clientes encontrados: {len(df_filtrado)}")
-
 # =========================
-# EXPORTAR EXCEL
+# WHATSAPP
 # =========================
-def convertir_excel(dataframe):
-    buffer = BytesIO()
-    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        dataframe.to_excel(writer, index=False)
-    return buffer.getvalue()
-
-st.download_button(
-    "⬇️ Descargar lista filtrada",
-    convertir_excel(df_filtrado),
-    "clientes_filtrados.xlsx"
-)
-
-# =========================
-# LINK WHATSAPP
-# =========================
-def generar_link_whatsapp(nombre, placa, telefono, sede, fecha):
+def link_whatsapp(nombre, placa, telefono, sede, fecha):
 
     telefono = str(telefono).replace(".0","").replace(" ","")
-
     if not telefono.startswith("57"):
         telefono = "57" + telefono
 
-    dias = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
-    meses = [
-        "enero","febrero","marzo","abril","mayo","junio",
-        "julio","agosto","septiembre","octubre","noviembre","diciembre"
-    ]
-
-    fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month-1]} de {fecha.year}"
+    fecha_texto = fecha.strftime("%A %d de %B de %Y")
 
     mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
@@ -182,57 +170,50 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
 ¿Deseas agendar tu revisión hoy? 🚗✅"""
 
-    mensaje_codificado = urllib.parse.quote(mensaje)
+    mensaje = urllib.parse.quote(mensaje)
 
-    return f"https://api.whatsapp.com/send?phone={telefono}&text={mensaje_codificado}"
+    return f"https://api.whatsapp.com/send?phone={telefono}&text={mensaje}"
 
 # =========================
-# LISTADO CLIENTES
+# LISTADO
 # =========================
-estados_validos = ["Pendiente","Contactado","Agendado","Renovado"]
+estados = ["Pendiente","Contactado","Agendado","Renovado"]
 
-for i, row in df_filtrado.iterrows():
+for i,row in df_filtrado.iterrows():
 
-    with st.container():
+    col1,col2,col3,col4 = st.columns([2,2,2,2])
 
-        col1,col2,col3,col4 = st.columns([2,2,2,2])
+    col1.write(f"**{row['Placa']}**")
+    col1.write(row["Cliente"])
 
-        col1.write(f"**🚘 {row['Placa']}**")
-        col1.write(row["Cliente"])
+    col2.write(row["Fecha_Renovacion"].date())
+    col2.write(row["Sede"])
 
-        semaforo = estado_vencimiento(row["Fecha_Renovacion"])
-        col2.write(f"📅 {row['Fecha_Renovacion'].date()} — {semaforo}")
-        col2.write(f"🏢 {row['Sede']}")
+    estado = col3.selectbox(
+        "Estado",
+        estados,
+        index=estados.index(row["Estado"]),
+        key=f"estado_{i}"
+    )
 
-        estado_actual = row["Estado"]
-        if estado_actual not in estados_validos:
-            estado_actual = "Pendiente"
+    df.loc[i,"Estado"] = estado
 
-        nuevo_estado = col3.selectbox(
-            "Estado",
-            estados_validos,
-            index=estados_validos.index(estado_actual),
-            key=f"estado_{i}"
-        )
-
-        df.loc[i,"Estado"] = nuevo_estado
-
-        link_wp = generar_link_whatsapp(
+    col4.link_button(
+        "📲 WhatsApp",
+        link_whatsapp(
             row["Cliente"],
             row["Placa"],
             row["Telefono"],
             row["Sede"],
             row["Fecha_Renovacion"]
         )
-
-        col4.link_button("📲 WhatsApp", link_wp)
+    )
 
     st.divider()
 
 # =========================
-# GUARDAR CAMBIOS
+# GUARDAR
 # =========================
 if st.button("💾 Guardar cambios"):
     df.to_excel(ARCHIVO, index=False)
-    st.success("✅ Cambios guardados correctamente")
-
+    st.success("Cambios guardados ✅")
