@@ -4,6 +4,32 @@ import urllib.parse
 from io import BytesIO
 
 # =========================
+# LOGIN SEGURIDAD
+# =========================
+USUARIO_CORRECTO = "juanjo"
+CLAVE_CORRECTA = "cda2026"
+
+if "login" not in st.session_state:
+    st.session_state.login = False
+
+def login():
+    st.title("🔐 Acceso CRM CDA")
+
+    usuario = st.text_input("Usuario")
+    clave = st.text_input("Contraseña", type="password")
+
+    if st.button("Ingresar"):
+        if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
+            st.session_state.login = True
+            st.rerun()
+        else:
+            st.error("❌ Usuario o contraseña incorrectos")
+
+if not st.session_state.login:
+    login()
+    st.stop()
+
+# =========================
 # CONFIGURACION PAGINA
 # =========================
 st.set_page_config(page_title="CRM CDA", layout="wide")
@@ -53,7 +79,7 @@ df = cargar_datos()
 st.success("✅ Base cargada correctamente")
 
 # =========================
-# DASHBOARD DINAMICO
+# DASHBOARD
 # =========================
 st.markdown("## 📊 Dashboard Comercial")
 
@@ -131,7 +157,7 @@ st.download_button(
 )
 
 # =========================
-# GENERAR LINK WHATSAPP
+# LINK WHATSAPP
 # =========================
 def generar_link_whatsapp(nombre, placa, telefono, sede, fecha):
 
@@ -140,7 +166,6 @@ def generar_link_whatsapp(nombre, placa, telefono, sede, fecha):
     if not telefono.startswith("57"):
         telefono = "57" + telefono
 
-    # ===== FORMATO FECHA EN ESPAÑOL =====
     dias = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
     meses = [
         "enero","febrero","marzo","abril","mayo","junio",
@@ -155,15 +180,14 @@ Te escribimos del CDA del Occidente {sede}.
 
 Tu vehículo con placa {placa} vence el {fecha_texto}.
 
-¿Deseas agendar tu revisión hoy? """
+¿Deseas agendar tu revisión hoy? 🚗✅"""
 
     mensaje_codificado = urllib.parse.quote(mensaje)
 
     return f"https://api.whatsapp.com/send?phone={telefono}&text={mensaje_codificado}"
 
-
 # =========================
-# LISTADO CLIENTES CRM
+# LISTADO CLIENTES
 # =========================
 estados_validos = ["Pendiente","Contactado","Agendado","Renovado"]
 
@@ -211,3 +235,4 @@ for i, row in df_filtrado.iterrows():
 if st.button("💾 Guardar cambios"):
     df.to_excel(ARCHIVO, index=False)
     st.success("✅ Cambios guardados correctamente")
+
