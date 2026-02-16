@@ -72,7 +72,7 @@ c4.metric("🟠 Agendados", agendados)
 c5.metric("🟢 Renovados", renovados)
 
 # =========================
-# SEMAFORO
+# SEMAFORO VENCIMIENTO
 # =========================
 def estado_vencimiento(fecha):
     hoy = pd.Timestamp.today().normalize()
@@ -131,7 +131,7 @@ st.download_button(
 )
 
 # =========================
-# GENERAR LINK WHATSAPP (WEB)
+# GENERAR LINK WHATSAPP
 # =========================
 def generar_link_whatsapp(nombre, placa, telefono, sede, fecha):
 
@@ -140,14 +140,14 @@ def generar_link_whatsapp(nombre, placa, telefono, sede, fecha):
     if not telefono.startswith("57"):
         telefono = "57" + telefono
 
+    # ===== FORMATO FECHA EN ESPAÑOL =====
     dias = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
-meses = [
-    "enero","febrero","marzo","abril","mayo","junio",
-    "julio","agosto","septiembre","octubre","noviembre","diciembre"
-]
+    meses = [
+        "enero","febrero","marzo","abril","mayo","junio",
+        "julio","agosto","septiembre","octubre","noviembre","diciembre"
+    ]
 
-fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month-1]} de {fecha.year}"
-
+    fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month-1]} de {fecha.year}"
 
     mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
@@ -162,7 +162,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
     return f"https://wa.me/{telefono}?text={mensaje_codificado}"
 
 # =========================
-# LISTADO CRM
+# LISTADO CLIENTES CRM
 # =========================
 estados_validos = ["Pendiente","Contactado","Agendado","Renovado"]
 
@@ -192,7 +192,6 @@ for i, row in df_filtrado.iterrows():
 
         df.loc[i,"Estado"] = nuevo_estado
 
-        # ✅ BOTON WHATSAPP FUNCIONAL WEB
         link_wp = generar_link_whatsapp(
             row["Cliente"],
             row["Placa"],
