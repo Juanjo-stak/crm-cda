@@ -155,7 +155,7 @@ Te escribimos del CDA del Occidente {sede}.
 
 Tu vehículo con placa {placa} vence el {fecha_texto}.
 
-¿Deseas agendar tu revisión hoy? 🚗✅"""
+¿Deseas agendar tu revisión hoy? """
 
     mensaje_codificado = urllib.parse.quote(mensaje)
 
