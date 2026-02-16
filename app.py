@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import urllib.parse
 from io import BytesIO
-import webbrowser
 
 # =========================
 # CONFIGURACION PAGINA
@@ -11,16 +10,15 @@ st.set_page_config(page_title="CRM CDA", layout="wide")
 
 st.title("🚗 CRM Renovaciones CDA")
 
-ARCHIVO = "clientes.xlsx"
-
 # =========================
 # CARGAR BASE DE DATOS
 # =========================
+ARCHIVO = "clientes.xlsx"
+
 @st.cache_data
 def cargar_datos():
     df = pd.read_excel(ARCHIVO)
 
-    # limpiar nombres columnas
     df.columns = df.columns.str.strip()
 
     columnas = {
@@ -36,7 +34,6 @@ def cargar_datos():
 
     df.rename(columns=columnas, inplace=True)
 
-    # convertir fecha correctamente
     df["Fecha_Renovacion"] = pd.to_datetime(
         df["Fecha_Renovacion"],
         errors="coerce",
@@ -51,13 +48,7 @@ def cargar_datos():
     return df
 
 
-# ===== SESSION STATE (CRM EN VIVO)
-df_inicial = cargar_datos()
-
-if "df" not in st.session_state:
-    st.session_state.df = df_inicial.copy()
-
-df = st.session_state.df
+df = cargar_datos()
 
 st.success("✅ Base cargada correctamente")
 
@@ -67,12 +58,12 @@ st.success("✅ Base cargada correctamente")
 st.markdown("## 📊 Dashboard Comercial")
 
 total = len(df)
-pendientes = len(df[df["Estado"] == "Pendiente"])
-contactados = len(df[df["Estado"] == "Contactado"])
-agendados = len(df[df["Estado"] == "Agendado"])
-renovados = len(df[df["Estado"] == "Renovado"])
+pendientes = len(df[df["Estado"]=="Pendiente"])
+contactados = len(df[df["Estado"]=="Contactado"])
+agendados = len(df[df["Estado"]=="Agendado"])
+renovados = len(df[df["Estado"]=="Renovado"])
 
-c1, c2, c3, c4, c5 = st.columns(5)
+c1,c2,c3,c4,c5 = st.columns(5)
 
 c1.metric("📋 Total", total)
 c2.metric("🟡 Pendientes", pendientes)
@@ -81,7 +72,7 @@ c4.metric("🟠 Agendados", agendados)
 c5.metric("🟢 Renovados", renovados)
 
 # =========================
-# SEMAFORO VENCIMIENTO
+# SEMAFORO
 # =========================
 def estado_vencimiento(fecha):
     hoy = pd.Timestamp.today().normalize()
@@ -129,7 +120,8 @@ st.subheader(f"📋 Clientes encontrados: {len(df_filtrado)}")
 # =========================
 def convertir_excel(dataframe):
     buffer = BytesIO()
-    dataframe.to_excel(buffer, index=False)
+    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+        dataframe.to_excel(writer, index=False)
     return buffer.getvalue()
 
 st.download_button(
@@ -139,42 +131,39 @@ st.download_button(
 )
 
 # =========================
-# WHATSAPP APP
+# GENERAR LINK WHATSAPP (WEB)
 # =========================
-def abrir_whatsapp(nombre, placa, telefono, sede, fecha):
+def generar_link_whatsapp(nombre, placa, telefono, sede, fecha):
 
-    telefono = str(telefono).replace(".0", "").replace(" ", "")
+    telefono = str(telefono).replace(".0","").replace(" ","")
 
     if not telefono.startswith("57"):
         telefono = "57" + telefono
 
-    fecha_txt = fecha.strftime("%d/%m/%Y")
+    fecha_texto = fecha.strftime("%d/%m/%Y")
 
     mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
 Te escribimos del CDA del Occidente {sede}.
 
-Tu vehículo con placa {placa} vence su tecnomecánica el {fecha_txt}.
+Tu vehículo con placa {placa} vence el {fecha_texto}.
 
 ¿Deseas agendar tu revisión hoy? 🚗✅"""
 
     mensaje_codificado = urllib.parse.quote(mensaje)
 
-    url = f"https://wa.me/{telefono}?text={mensaje_codificado}"
-
-
-    webbrowser.open(url)
+    return f"https://wa.me/{telefono}?text={mensaje_codificado}"
 
 # =========================
-# LISTADO CLIENTES CRM
+# LISTADO CRM
 # =========================
-estados_validos = ["Pendiente", "Contactado", "Agendado", "Renovado"]
+estados_validos = ["Pendiente","Contactado","Agendado","Renovado"]
 
 for i, row in df_filtrado.iterrows():
 
     with st.container():
 
-        col1, col2, col3, col4 = st.columns([2,2,2,2])
+        col1,col2,col3,col4 = st.columns([2,2,2,2])
 
         col1.write(f"**🚘 {row['Placa']}**")
         col1.write(row["Cliente"])
@@ -194,18 +183,18 @@ for i, row in df_filtrado.iterrows():
             key=f"estado_{i}"
         )
 
-        if nuevo_estado != estado_actual:
-            st.session_state.df.loc[i, "Estado"] = nuevo_estado
-            st.rerun()
+        df.loc[i,"Estado"] = nuevo_estado
 
-        if col4.button("📲 WhatsApp", key=f"wp_{i}"):
-            abrir_whatsapp(
-                row["Cliente"],
-                row["Placa"],
-                row["Telefono"],
-                row["Sede"],
-                row["Fecha_Renovacion"]
-            )
+        # ✅ BOTON WHATSAPP FUNCIONAL WEB
+        link_wp = generar_link_whatsapp(
+            row["Cliente"],
+            row["Placa"],
+            row["Telefono"],
+            row["Sede"],
+            row["Fecha_Renovacion"]
+        )
+
+        col4.link_button("📲 WhatsApp", link_wp)
 
     st.divider()
 
@@ -213,5 +202,5 @@ for i, row in df_filtrado.iterrows():
 # GUARDAR CAMBIOS
 # =========================
 if st.button("💾 Guardar cambios"):
-    st.session_state.df.to_excel(ARCHIVO, index=False)
+    df.to_excel(ARCHIVO, index=False)
     st.success("✅ Cambios guardados correctamente")
