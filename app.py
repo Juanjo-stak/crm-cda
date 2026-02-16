@@ -140,13 +140,7 @@ def generar_link_whatsapp(nombre, placa, telefono, sede, fecha):
     if not telefono.startswith("57"):
         telefono = "57" + telefono
 
-    fecha_texto = fecha.strftime("%d/%m/%Y")
-
-    mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
-
-Te escribimos del CDA del Occidente {sede}.
-
-Tu vehículo con placa {placa} vence el dias = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
+    dias = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
 meses = [
     "enero","febrero","marzo","abril","mayo","junio",
     "julio","agosto","septiembre","octubre","noviembre","diciembre"
@@ -154,6 +148,12 @@ meses = [
 
 fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month-1]} de {fecha.year}"
 
+
+    mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
+
+Te escribimos del CDA del Occidente {sede}.
+
+Tu vehículo con placa {placa} vence el {fecha_texto}.
 
 ¿Deseas agendar tu revisión hoy? 🚗✅"""
 
