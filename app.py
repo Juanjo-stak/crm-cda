@@ -90,24 +90,6 @@ if st.session_state.rol == "admin":
         guardar_usuarios(usuarios)
         st.sidebar.success("Usuario creado ✅")
 
-# =========================
-# LISTAR BASES DISPONIBLES
-# =========================
-bases_disponibles = [
-    f for f in os.listdir(CARPETA_BASES)
-    if f.endswith(".xlsx")
-]
-
-if not bases_disponibles:
-    st.warning("⚠️ No hay bases cargadas aún")
-    st.stop()
-
-base_seleccionada = st.sidebar.selectbox(
-    "Seleccionar base",
-    bases_disponibles
-)
-
-ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
 
 # =========================
 # CARGAR DATOS
@@ -162,6 +144,25 @@ if archivo_subido:
         f.write(archivo_subido.getbuffer())
     st.sidebar.success("✅ Base guardada")
     st.rerun()
+# =========================
+# LISTAR BASES DISPONIBLES
+# =========================
+bases_disponibles = [
+    f for f in os.listdir(CARPETA_BASES)
+    if f.endswith(".xlsx")
+]
+
+if not bases_disponibles:
+    st.warning("⚠️ No hay bases cargadas aún")
+    st.stop()
+
+base_seleccionada = st.sidebar.selectbox(
+    "Seleccionar base",
+    bases_disponibles
+)
+
+ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
+
 # =========================
 # DASHBOARD
 # =========================
