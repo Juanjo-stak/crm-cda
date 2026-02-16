@@ -54,17 +54,6 @@ def login():
 if not st.session_state.login:
     login()
     st.stop()
-
-
-# =========================
-# CONFIG
-# =========================
-st.set_page_config(page_title="CRM CDA", layout="wide")
-st.title("🚗 CRM Renovaciones CDA")
-
-CARPETA_BASES = "bases"
-os.makedirs(CARPETA_BASES, exist_ok=True)
-
 # =========================
 # SUBIR BASE NUEVA
 # =========================
@@ -81,6 +70,17 @@ if archivo_subido:
         f.write(archivo_subido.getbuffer())
     st.sidebar.success("✅ Base guardada")
     st.rerun()
+
+# =========================
+# CONFIG
+# =========================
+st.set_page_config(page_title="CRM CDA", layout="wide")
+st.title("🚗 CRM Renovaciones CDA")
+
+CARPETA_BASES = "bases"
+os.makedirs(CARPETA_BASES, exist_ok=True)
+
+
 # =========================
 # PANEL ADMIN
 # =========================
