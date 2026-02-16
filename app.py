@@ -160,7 +160,8 @@ Tu vehículo con placa {placa} vence su tecnomecánica el {fecha_txt}.
 
     mensaje_codificado = urllib.parse.quote(mensaje)
 
-    url = f"whatsapp://send?phone={telefono}&text={mensaje_codificado}"
+    url = f"https://wa.me/{telefono}?text={mensaje_codificado}"
+
 
     webbrowser.open(url)
 
