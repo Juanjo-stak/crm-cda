@@ -159,7 +159,8 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
     mensaje_codificado = urllib.parse.quote(mensaje)
 
-    return f"https://wa.me/{telefono}?text={mensaje_codificado}"
+    return f"https://api.whatsapp.com/send?phone={telefono}&text={mensaje_codificado}"
+
 
 # =========================
 # LISTADO CLIENTES CRM
