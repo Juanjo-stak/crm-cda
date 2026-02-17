@@ -87,6 +87,22 @@ st.title("  Renovaciones ")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
 # ======================================================
+# 🔴 CAMBIO DE CONTRASEÑA AL INICIAR SESIÓN
+# ======================================================
+
+st.subheader("🔑 Cambiar contraseña (opcional)")
+
+nueva_pass_usuario = st.text_input("Nueva contraseña", type="password", key="new_pass_user")
+if st.button("Actualizar contraseña"):
+    if nueva_pass_usuario.strip() == "":
+        st.error("La contraseña no puede estar vacía")
+    else:
+        usuarios = cargar_usuarios()
+        usuarios[usuario_actual]["password"] = nueva_pass_usuario
+        guardar_usuarios(usuarios)
+        st.success("Contraseña actualizada correctamente")
+
+# ======================================================
 # 🔴 AGREGADO: CERRAR SESIÓN
 # ======================================================
 
@@ -158,7 +174,7 @@ with tab_crm:
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
     # ==================================================
-    # ELIMINAR BASE (YA AGREGADO ANTES)
+    # ELIMINAR BASE
     # ==================================================
 
     st.sidebar.divider()
@@ -256,7 +272,7 @@ with tab_crm:
     st.divider()
 
     # ==================================================
-    # WHATSAPP
+    # WHATSAPP & LLAMAR
     # ==================================================
 
     def link_whatsapp(nombre, placa, telefono, fecha):
@@ -343,9 +359,11 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
                 link_llamada = f"tel:+{telefono}"
                 col4.markdown(
                     f'<a href="{link_llamada}">'
+
                     f'<button style="width:100%;padding:8px;'
                     f'border-radius:8px;background-color:#1f77b4;'
                     f'color:white;border:none;">📞 Llamar</button></a>',
+
                     unsafe_allow_html=True
                 )
 
@@ -386,12 +404,24 @@ if rol_actual == "admin":
 
         for user,datos in usuarios.items():
 
-            col1,col2,col3 = st.columns([3,2,1])
+            col1,col2,col3,col4 = st.columns([3,2,2,1])
             col1.write(f"👤 {user} ({datos['rol']})")
-            col2.write(f"🔑 {datos['password']}")  # ✅ Mostrar contraseña
+
+            # Mostrar contraseña oculta por default con opción de expandir
+            with st.expander("🔑 Ver / modificar contraseña"):
+                st.write(f"Actual: {datos['password']}")
+                nueva_pass_admin = st.text_input(f"Nueva contraseña para {user}", type="password", key=f"pass_{user}")
+                if st.button(f"Actualizar contraseña {user}", key=f"update_{user}"):
+                    if nueva_pass_admin.strip() == "":
+                        st.error("La contraseña no puede estar vacía")
+                    else:
+                        usuarios[user]["password"] = nueva_pass_admin
+                        guardar_usuarios(usuarios)
+                        st.success(f"Contraseña de {user} actualizada")
+                        st.rerun()
 
             if user != "admin":
-                if col3.button("🗑 Eliminar", key=f"del_{user}"):
+                if col4.button("🗑 Eliminar", key=f"del_{user}"):
                     del usuarios[user]
                     guardar_usuarios(usuarios)
                     carpeta_eliminar = os.path.join(CARPETA_BASES,user)
