@@ -389,10 +389,9 @@ if rol_actual == "admin":
             col1,col2,col3 = st.columns([3,1,1])
             col1.write(f"👤 {user} ({datos['rol']})")
 
-            # 🔑 Botón que revela contraseña
-            mostrar = col2.button("🔑 Mostrar", key=f"show_{user}")
-            if mostrar:
-                col2.code(datos["password"], language="text")
+            # 🔑 Expander para ver la contraseña
+            with col2.expander("🔑 Ver contraseña"):
+                st.code(datos["password"], language="text")
 
             if user != "admin":
                 if col3.button("🗑 Eliminar", key=f"del_{user}"):
@@ -403,5 +402,3 @@ if rol_actual == "admin":
                         shutil.rmtree(carpeta_eliminar)
                     st.success("Usuario eliminado")
                     st.rerun()
-
-
