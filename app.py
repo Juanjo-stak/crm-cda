@@ -86,6 +86,23 @@ rol_actual = st.session_state.rol
 st.title("🚗 CRM Renovaciones CDA")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
+# ======================================================
+# 🔴 AGREGADO: CERRAR SESIÓN
+# ======================================================
+
+col_logout1, col_logout2 = st.columns([6,1])
+
+with col_logout2:
+    if st.button("🚪 Cerrar sesión"):
+        st.session_state.login = False
+        st.session_state.usuario = None
+        st.session_state.rol = None
+        st.rerun()
+
+# ======================================================
+# CARPETA USUARIO
+# ======================================================
+
 carpeta_usuario = os.path.join(CARPETA_BASES, usuario_actual)
 os.makedirs(carpeta_usuario, exist_ok=True)
 
@@ -141,7 +158,7 @@ with tab_crm:
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
     # ==================================================
-    # 🔴 AGREGADO: ELIMINAR BASE
+    # ELIMINAR BASE (YA AGREGADO ANTES)
     # ==================================================
 
     st.sidebar.divider()
@@ -264,10 +281,6 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
         return f"https://wa.me/{telefono}?text={mensaje}"
 
-    # ==================================================
-    # LISTADO
-    # ==================================================
-
     estados = ["Pendiente","Agendado","Renovado"]
 
     for i,row in df_filtrado.iterrows():
@@ -352,5 +365,6 @@ if rol_actual == "admin":
                         shutil.rmtree(carpeta_eliminar)
                     st.success("Usuario eliminado")
                     st.rerun()
+
 
 
