@@ -3,37 +3,26 @@ import pandas as pd
 import urllib.parse
 import os
 import json
+from datetime import datetime
 
-# ======================================================
-# CONFIGURACIÓN GENERAL
-# ======================================================
+# =========================
+# CONFIGURACIÓN
+# =========================
 
 st.set_page_config(page_title="CRM CDA", layout="wide")
 
 ARCHIVO_USUARIOS = "usuarios.json"
 CARPETA_BASES = "bases"
-
 os.makedirs(CARPETA_BASES, exist_ok=True)
 
-# ======================================================
+# =========================
 # FUNCIONES USUARIOS
-# ======================================================
-
-def inicializar_usuarios():
-    if not os.path.exists(ARCHIVO_USUARIOS) or os.path.getsize(ARCHIVO_USUARIOS) == 0:
-        with open(ARCHIVO_USUARIOS, "w") as f:
-            json.dump(
-                {
-                    "admin": {
-                        "password": "admin123",
-                        "rol": "admin"
-                    }
-                },
-                f,
-                indent=4
-            )
+# =========================
 
 def cargar_usuarios():
+    if not os.path.exists(ARCHIVO_USUARIOS):
+        with open(ARCHIVO_USUARIOS, "w") as f:
+            json.dump({"admin": {"password": "admin123", "rol": "admin"}}, f)
     with open(ARCHIVO_USUARIOS, "r") as f:
         return json.load(f)
 
@@ -41,11 +30,9 @@ def guardar_usuarios(data):
     with open(ARCHIVO_USUARIOS, "w") as f:
         json.dump(data, f, indent=4)
 
-inicializar_usuarios()
-
-# ======================================================
+# =========================
 # SESSION STATE
-# ======================================================
+# =========================
 
 if "login" not in st.session_state:
     st.session_state.login = False
@@ -54,11 +41,11 @@ if "usuario" not in st.session_state:
 if "rol" not in st.session_state:
     st.session_state.rol = None
 
-# ======================================================
+# =========================
 # LOGIN
-# ======================================================
+# =========================
 
-def pantalla_login():
+def login():
     st.title("🔐 CRM CDA - Acceso")
 
     usuario = st.text_input("Usuario")
@@ -76,257 +63,262 @@ def pantalla_login():
             st.error("Credenciales incorrectas")
 
 if not st.session_state.login:
-    pantalla_login()
+    login()
     st.stop()
 
-# ======================================================
-# CREAR CARPETA DEL USUARIO
-# ======================================================
-
-usuario_actual = st.session_state.usuario
-rol_actual = st.session_state.rol
-
-carpeta_usuario = os.path.join(CARPETA_BASES, usuario_actual)
-os.makedirs(carpeta_usuario, exist_ok=True)
-
-# ======================================================
+# =========================
 # HEADER
-# ======================================================
+# =========================
 
 st.title("🚗 CRM Renovaciones CDA")
-st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
+st.write(f"👤 Usuario: {st.session_state.usuario} | Rol: {st.session_state.rol}")
 
-# ======================================================
+# =========================
 # PESTAÑAS
-# ======================================================
+# =========================
 
-if rol_actual == "admin":
-    tab_crm, tab_admin = st.tabs(["📊 CRM", "👑 Panel Administración"])
+if st.session_state.rol == "admin":
+    tab1, tab2 = st.tabs(["📊 CRM", "👑 Panel Administración"])
 else:
-    tab_crm = st.tabs(["📊 CRM"])[0]
+    tab1 = st.tabs(["📊 CRM"])[0]
 
-# ======================================================
-# ====================== TAB CRM ========================
-# ======================================================
+# ==========================================================
+# ======================= TAB CRM ==========================
+# ==========================================================
 
-with tab_crm:
+with tab1:
+
+    # -------------------------
+    # SUBIR BASE
+    # -------------------------
 
     st.sidebar.header("📂 Bases de datos")
 
-    # --------------------------------------------------
-    # SUBIR ARCHIVO
-    # --------------------------------------------------
-
-    archivo_subido = st.sidebar.file_uploader("Subir base Excel", type=["xlsx"])
+    archivo_subido = st.sidebar.file_uploader("Subir nueva base", type=["xlsx"])
 
     if archivo_subido:
-        ruta_guardado = os.path.join(carpeta_usuario, archivo_subido.name)
+        ruta_guardado = os.path.join(CARPETA_BASES, archivo_subido.name)
         with open(ruta_guardado, "wb") as f:
             f.write(archivo_subido.getbuffer())
-        st.sidebar.success("Base guardada correctamente")
+        st.sidebar.success("✅ Base guardada")
         st.rerun()
 
-    # --------------------------------------------------
-    # LISTAR BASES SEGÚN ROL
-    # --------------------------------------------------
-
-    bases_disponibles = []
-
-    if rol_actual == "admin":
-
-        for usuario in os.listdir(CARPETA_BASES):
-
-            ruta_user = os.path.join(CARPETA_BASES, usuario)
-
-            if not os.path.isdir(ruta_user):
-                continue
-
-            for archivo in os.listdir(ruta_user):
-
-                ruta_archivo = os.path.join(ruta_user, archivo)
-
-                if os.path.isfile(ruta_archivo) and archivo.endswith(".xlsx"):
-                    bases_disponibles.append(
-                        (f"{usuario} - {archivo}", ruta_archivo)
-                    )
-
-    else:
-
-        for archivo in os.listdir(carpeta_usuario):
-
-            ruta_archivo = os.path.join(carpeta_usuario, archivo)
-
-            if os.path.isfile(ruta_archivo) and archivo.endswith(".xlsx"):
-                bases_disponibles.append((archivo, ruta_archivo))
+    bases_disponibles = [
+        f for f in os.listdir(CARPETA_BASES)
+        if f.endswith(".xlsx")
+    ]
 
     if not bases_disponibles:
-        st.warning("No hay bases disponibles")
+        st.warning("⚠️ No hay bases cargadas aún")
         st.stop()
 
-    nombres = [x[0] for x in bases_disponibles]
-    seleccion = st.sidebar.selectbox("Seleccionar base", nombres)
-    ARCHIVO = dict(bases_disponibles)[seleccion]
+    base_seleccionada = st.sidebar.selectbox("Seleccionar base", bases_disponibles)
+    ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
 
-    # ==================================================
-    # CARGAR DATA
-    # ==================================================
+    # -------------------------
+    # CARGAR DATOS
+    # -------------------------
 
-    df = pd.read_excel(ARCHIVO)
-    df.columns = df.columns.str.strip()
+    @st.cache_data
+    def cargar_datos(archivo):
+        df = pd.read_excel(archivo)
+        df.columns = df.columns.str.strip()
 
-    columnas_lower = {col.lower(): col for col in df.columns}
+        columnas = {
+            "Placa ": "Placa",
+            "Cliente": "Cliente",
+            "Telefono": "Telefono",
+            "Fecha": "Fecha_Renovacion",
+            "fecca": "Fecha_Renovacion",
+            "sede": "Sede"
+        }
 
-    posibles_fechas = ["fecha_renovacion", "fecha", "vencimiento", "fecha vencimiento"]
+        df.rename(columns=columnas, inplace=True)
 
-    columna_fecha = None
-    for posible in posibles_fechas:
-        if posible in columnas_lower:
-            columna_fecha = columnas_lower[posible]
-            break
+        df["Fecha_Renovacion"] = pd.to_datetime(
+            df["Fecha_Renovacion"],
+            errors="coerce",
+            dayfirst=True
+        )
 
-    if columna_fecha is None:
-        st.error("No se encontró columna de fecha")
-        st.write("Columnas detectadas:", list(df.columns))
-        st.stop()
+        df = df[df["Fecha_Renovacion"].notna()]
 
-    df.rename(columns={columna_fecha: "Fecha_Renovacion"}, inplace=True)
+        if "Estado" not in df.columns:
+            df["Estado"] = "Pendiente"
 
-    df["Fecha_Renovacion"] = pd.to_datetime(
-        df["Fecha_Renovacion"],
-        errors="coerce",
-        dayfirst=True
+        return df
+
+    df = cargar_datos(ARCHIVO)
+
+    # -------------------------
+    # FILTROS
+    # -------------------------
+
+    st.markdown("## 🔎 Filtros")
+
+    colf1, colf2, colf3 = st.columns(3)
+
+    fecha_inicio = colf1.date_input(
+        "Desde",
+        df["Fecha_Renovacion"].min().date()
     )
 
-    df = df[df["Fecha_Renovacion"].notna()]
+    fecha_fin = colf2.date_input(
+        "Hasta",
+        df["Fecha_Renovacion"].max().date()
+    )
 
-    if "Estado" not in df.columns:
-        df["Estado"] = "Pendiente"
+    sedes = ["Todas"] + sorted(df["Sede"].dropna().unique().tolist())
+    sede_sel = colf3.selectbox("Sede", sedes)
 
-    # ==================================================
+    df_filtrado = df[
+        (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
+        (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
+    ]
+
+    if sede_sel != "Todas":
+        df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
+
+    # -------------------------
     # DASHBOARD
-    # ==================================================
+    # -------------------------
 
     st.markdown("## 📊 Dashboard")
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total", len(df))
-    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
-    c3.metric("Agendados", (df["Estado"]=="Agendado").sum())
-    c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
+    c1,c2,c3,c4,c5 = st.columns(5)
+
+    c1.metric("Total", len(df_filtrado))
+    c2.metric("Pendientes", (df_filtrado["Estado"]=="Pendiente").sum())
+    c3.metric("Contactados", (df_filtrado["Estado"]=="Contactado").sum())
+    c4.metric("Agendados", (df_filtrado["Estado"]=="Agendado").sum())
+    c5.metric("Renovados", (df_filtrado["Estado"]=="Renovado").sum())
 
     st.divider()
 
-    # ==================================================
+    # -------------------------
     # FUNCIÓN WHATSAPP
-    # ==================================================
+    # -------------------------
 
-    def link_whatsapp(nombre, placa, telefono, fecha):
+    def link_whatsapp(nombre, placa, telefono, sede, fecha):
 
         if pd.isna(telefono):
             return None
 
-        telefono = str(telefono).replace(".0","").replace(" ","").replace("-","")
+        telefono = str(telefono).replace(".0", "").replace(" ", "").replace("-", "")
 
         if not telefono.startswith("57"):
             telefono = "57" + telefono
 
-        fecha_texto = fecha.strftime("%d/%m/%Y")
+        dias = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
+        meses = ["enero","febrero","marzo","abril","mayo","junio",
+                 "julio","agosto","septiembre","octubre","noviembre","diciembre"]
 
-        mensaje = f"""Hola {nombre}, soy Juan José 👋
+        fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month-1]} de {fecha.year}"
+
+        mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
+
+Te escribimos del CDA del Occidente {sede}.
 
 Tu vehículo con placa {placa} vence el {fecha_texto}.
 
-¿Deseas agendar tu revisión? 🚗✅"""
+¿Deseas agendar tu revisión hoy? 🚗✅"""
 
         mensaje = urllib.parse.quote(mensaje)
 
         return f"https://wa.me/{telefono}?text={mensaje}"
 
-    # ==================================================
-    # LISTADO CLIENTES
-    # ==================================================
+    # -------------------------
+    # LISTADO
+    # -------------------------
 
-    estados = ["Pendiente","Agendado","Renovado"]
+    estados = ["Pendiente","Contactado","Agendado","Renovado"]
 
-    for i,row in df.iterrows():
+    for i,row in df_filtrado.iterrows():
 
-        col1,col2,col3,col4 = st.columns(4)
+        col1,col2,col3,col4 = st.columns([2,2,2,2])
 
-        col1.write(f"**{row.get('Placa','')}**")
-        col1.write(row.get("Cliente",""))
+        col1.write(f"**{row['Placa']}**")
+        col1.write(row["Cliente"])
 
         col2.write(row["Fecha_Renovacion"].date())
+        col2.write(row["Sede"])
 
         estado = col3.selectbox(
             "Estado",
             estados,
             index=estados.index(row["Estado"]),
-            key=f"{i}"
+            key=f"estado_{i}"
         )
 
         df.loc[i,"Estado"] = estado
 
-        if "Telefono" in df.columns:
+        url = link_whatsapp(
+            row["Cliente"],
+            row["Placa"],
+            row["Telefono"],
+            row["Sede"],
+            row["Fecha_Renovacion"]
+        )
 
-            url = link_whatsapp(
-                row.get("Cliente",""),
-                row.get("Placa",""),
-                row.get("Telefono",""),
-                row["Fecha_Renovacion"]
-            )
-
-            if url:
-                col4.link_button("📲 WhatsApp", url)
+        if url:
+            col4.link_button("📲 WhatsApp", url)
+        else:
+            col4.write("❌ Sin número")
 
         st.divider()
 
     if st.button("💾 Guardar cambios"):
         df.to_excel(ARCHIVO, index=False)
-        st.success("Cambios guardados correctamente")
+        st.success("Cambios guardados ✅")
 
-# ======================================================
-# ================= PANEL ADMIN ========================
-# ======================================================
+# ==========================================================
+# =================== PANEL ADMIN ==========================
+# ==========================================================
 
-if rol_actual == "admin":
+if st.session_state.rol == "admin":
 
-    with tab_admin:
+    with tab2:
 
-        st.header("👑 Panel Administración")
+        st.header("👑 Panel de Administración")
 
         usuarios = cargar_usuarios()
 
-        nuevo_user = st.text_input("Nuevo usuario")
+        st.subheader("➕ Crear Usuario")
+
+        nuevo_user = st.text_input("Usuario nuevo")
         nueva_pass = st.text_input("Contraseña", type="password")
+        rol_nuevo = st.selectbox("Rol", ["asesor","viewer","admin"])
 
         if st.button("Crear Usuario"):
-
             if nuevo_user in usuarios:
                 st.error("El usuario ya existe")
-            elif nuevo_user.strip() == "" or nueva_pass.strip() == "":
-                st.error("Campos vacíos")
             else:
                 usuarios[nuevo_user] = {
                     "password": nueva_pass,
-                    "rol": "asesor"
+                    "rol": rol_nuevo
                 }
-
                 guardar_usuarios(usuarios)
-
-                os.makedirs(
-                    os.path.join(CARPETA_BASES, nuevo_user),
-                    exist_ok=True
-                )
-
-                st.success("Usuario creado correctamente")
+                st.success("Usuario creado correctamente ✅")	
                 st.rerun()
 
         st.divider()
 
-        st.subheader("Usuarios registrados")
+        st.subheader("👥 Usuarios Registrados")
 
-        for user, datos in usuarios.items():
-            st.write(f"• {user} ({datos['rol']})")
+        for user, data in usuarios.items():
+
+            col1,col2,col3 = st.columns([2,2,1])
+
+            col1.write(user)
+            col2.write(data["rol"])
+
+            if user != "admin":
+                if col3.button("Eliminar", key=f"del_{user}"):
+                    del usuarios[user]
+                    guardar_usuarios(usuarios)
+                    st.success("Usuario eliminado")
+                    st.rerun()
+
 
 
 
