@@ -256,7 +256,7 @@ with tab_crm:
     st.divider()
 
     # ==================================================
-    # WHATSAPP + LLAMADA
+    # WHATSAPP
     # ==================================================
 
     def link_whatsapp(nombre, placa, telefono, fecha):
@@ -308,7 +308,6 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
         if "Telefono" in df.columns:
 
-            # WhatsApp verde
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
@@ -336,18 +335,19 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
                     unsafe_allow_html=True
                 )
 
-            # Botón llamar
+            # 📞 BOTÓN LLAMAR
             telefono = str(row.get("Telefono","")).replace(".0","").replace(" ","").replace("-","")
-            if telefono and not telefono.startswith("57"):
-                telefono = "57" + telefono
-            link_llamada = f"tel:+{telefono}"
-            col4.markdown(
-                f'<a href="{link_llamada}">'
-                f'<button style="width:100%;padding:8px;'
-                f'border-radius:8px;background-color:#1f77b4;'
-                f'color:white;border:none;margin-top:5px;">📞 Llamar</button></a>',
-                unsafe_allow_html=True
-            )
+            if telefono:
+                if not telefono.startswith("57"):
+                    telefono = "57" + telefono
+                link_llamada = f"tel:+{telefono}"
+                col4.markdown(
+                    f'<a href="{link_llamada}">'
+                    f'<button style="width:100%;padding:8px;'
+                    f'border-radius:8px;background-color:#1f77b4;'
+                    f'color:white;border:none;">📞 Llamar</button></a>',
+                    unsafe_allow_html=True
+                )
 
         st.divider()
 
@@ -386,11 +386,12 @@ if rol_actual == "admin":
 
         for user,datos in usuarios.items():
 
-            col1,col2 = st.columns([3,1])
+            col1,col2,col3 = st.columns([3,2,1])
             col1.write(f"👤 {user} ({datos['rol']})")
+            col2.write(f"🔑 {datos['password']}")  # ✅ Mostrar contraseña
 
             if user != "admin":
-                if col2.button("🗑 Eliminar", key=f"del_{user}"):
+                if col3.button("🗑 Eliminar", key=f"del_{user}"):
                     del usuarios[user]
                     guardar_usuarios(usuarios)
                     carpeta_eliminar = os.path.join(CARPETA_BASES,user)
@@ -398,5 +399,4 @@ if rol_actual == "admin":
                         shutil.rmtree(carpeta_eliminar)
                     st.success("Usuario eliminado")
                     st.rerun()
-
 
