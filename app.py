@@ -202,18 +202,7 @@ if sede_sel != "Todas":
 # =========================
 
 import urllib.parse
-import locale
 from datetime import datetime
-
-# Configurar idioma español (ajusta según tu sistema)
-try:
-    locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
-except:
-    try:
-        locale.setlocale(locale.LC_TIME, 'Spanish_Spain')
-    except:
-        pass  # Si falla, seguirá en el idioma por defecto
-
 
 def link_whatsapp(nombre, placa, telefono, sede, fecha):
 
@@ -222,8 +211,33 @@ def link_whatsapp(nombre, placa, telefono, sede, fecha):
     if not telefono.startswith("57"):
         telefono = "57" + telefono
 
-    # Formatear fecha en español
-    fecha_texto = fecha.strftime("%A %d de %B de %Y")
+    # Diccionarios en español
+    dias = {
+        0: "lunes",
+        1: "martes",
+        2: "miércoles",
+        3: "jueves",
+        4: "viernes",
+        5: "sábado",
+        6: "domingo"
+    }
+
+    meses = {
+        1: "enero",
+        2: "febrero",
+        3: "marzo",
+        4: "abril",
+        5: "mayo",
+        6: "junio",
+        7: "julio",
+        8: "agosto",
+        9: "septiembre",
+        10: "octubre",
+        11: "noviembre",
+        12: "diciembre"
+    }
+
+    fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month]} de {fecha.year}"
 
     mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
@@ -236,6 +250,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
     mensaje = urllib.parse.quote(mensaje)
 
     return f"https://api.whatsapp.com/send?phone={telefono}&text={mensaje}"
+
 # =========================
 # LISTADO
 # =========================
