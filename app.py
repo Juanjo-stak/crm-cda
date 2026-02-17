@@ -256,7 +256,7 @@ with tab_crm:
     st.divider()
 
     # ==================================================
-    # WHATSAPP Y LLAMADAS
+    # WHATSAPP
     # ==================================================
 
     def link_whatsapp(nombre, placa, telefono, fecha):
@@ -386,14 +386,9 @@ if rol_actual == "admin":
 
         for user,datos in usuarios.items():
 
-            col1,col2,col3 = st.columns([3,1,1])
+            col1,col2,col3 = st.columns([3,2,1])
             col1.write(f"👤 {user} ({datos['rol']})")
-
-            # 🔑 Contraseña con tooltip
-            col2.markdown(
-                f'<span title="{datos["password"]}">🔑 Mostrar contraseña</span>',
-                unsafe_allow_html=True
-            )
+            col2.write(f"🔑 {datos['password']}")  # ✅ Mostrar contraseña
 
             if user != "admin":
                 if col3.button("🗑 Eliminar", key=f"del_{user}"):
@@ -404,5 +399,4 @@ if rol_actual == "admin":
                         shutil.rmtree(carpeta_eliminar)
                     st.success("Usuario eliminado")
                     st.rerun()
-
 
