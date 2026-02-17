@@ -249,15 +249,33 @@ with tab_crm:
         df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
 
     # ==================================================
-    # TABLA INTERACTIVA CON st.data_editor
+    # DASHBOARD INTERACTIVO CON ESTILO
     # ==================================================
-    st.markdown("## 📊 Tabla Interactiva")
+    st.markdown("## 📊 Tabla Interactiva Estilizada")
     estados = ["Pendiente", "Agendado", "Renovado"]
 
-    # Añadimos columnas con botones
+    # Añadir botones de WhatsApp y Llamar
     df_filtrado["WhatsApp"] = df_filtrado.apply(lambda x: link_whatsapp(x.get("Cliente",""), x.get("Placa",""), x.get("Telefono",""), x["Fecha_Renovacion"]), axis=1)
     df_filtrado["Llamar"] = df_filtrado["Telefono"].apply(lambda x: link_llamada(x))
 
+    # Función de estilo por estado
+    def estilo_estado(val):
+        color = ""
+        if val == "Pendiente":
+            color = "background-color:#f08080"  # rojo
+        elif val == "Agendado":
+            color = "background-color:#fff176"  # amarillo
+        elif val == "Renovado":
+            color = "background-color:#90ee90"  # verde
+        return color
+
+    # Aplicar estilo condicional
+    df_filtrado_styled = df_filtrado.style.applymap(estilo_estado, subset=["Estado"])
+
+    # Mostrar tabla estilizada
+    st.dataframe(df_filtrado_styled, use_container_width=True)
+
+    # Guardar cambios de estado si se edita (aún en data_editor se puede usar)
     df_editor = st.data_editor(
         df_filtrado,
         use_container_width=True,
@@ -265,16 +283,14 @@ with tab_crm:
         num_rows="dynamic",
         column_config={
             "Estado": st.column_config.SelectboxColumn("Estado", options=estados),
-            "WhatsApp": st.column_config.ButtonColumn("WhatsApp", type="link", help="Enviar mensaje", width=100),
-            "Llamar": st.column_config.ButtonColumn("Llamar", type="link", help="Llamar cliente", width=100),
+            "WhatsApp": st.column_config.ButtonColumn("WhatsApp", type="link", help="Enviar mensaje"),
+            "Llamar": st.column_config.ButtonColumn("Llamar", type="link", help="Llamar cliente"),
         }
     )
 
-    # Guardar cambios de estado automáticamente
     if not df_editor.empty:
         for i, row in df_editor.iterrows():
             idx = df.index[df["Placa"] == row["Placa"]].tolist()
             if idx:
                 df.loc[idx[0], "Estado"] = row["Estado"]
         df.to_excel(ARCHIVO, index=False)
-
