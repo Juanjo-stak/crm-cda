@@ -20,7 +20,7 @@ os.makedirs(CARPETA_BASES, exist_ok=True)
 # =========================
 
 def cargar_usuarios():
-    if not os.path.exists(ARCHIVO_USUARIOS):
+    if not os.path.exists(ARCHIVO_USUARIOS) or os.path.getsize(ARCHIVO_USUARIOS) == 0:
         with open(ARCHIVO_USUARIOS, "w") as f:
             json.dump(
                 {"admin": {"password": "admin123", "rol": "admin"}},
@@ -118,13 +118,39 @@ with tab1:
     ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
 
     # =========================
-    # CARGAR DATOS
+    # CARGAR DATOS CORREGIDO
     # =========================
 
     @st.cache_data
     def cargar_datos(archivo):
+
         df = pd.read_excel(archivo)
         df.columns = df.columns.str.strip()
+
+        # Detectar columna fecha automáticamente
+        columnas_lower = {col.lower(): col for col in df.columns}
+
+        posibles_fechas = [
+            "fecha_renovacion",
+            "fecha",
+            "vencimiento",
+            "fecha vencimiento",
+            "fecca"
+        ]
+
+        columna_fecha_real = None
+
+        for posible in posibles_fechas:
+            if posible in columnas_lower:
+                columna_fecha_real = columnas_lower[posible]
+                break
+
+        if columna_fecha_real is None:
+            st.error("❌ No se encontró columna de fecha en la base.")
+            st.write("Columnas detectadas:", list(df.columns))
+            st.stop()
+
+        df.rename(columns={columna_fecha_real: "Fecha_Renovacion"}, inplace=True)
 
         df["Fecha_Renovacion"] = pd.to_datetime(
             df["Fecha_Renovacion"],
@@ -188,7 +214,7 @@ with tab1:
         if pd.isna(telefono):
             return None
 
-        telefono = str(telefono).replace(".0","").replace(" ","")
+        telefono = str(telefono).replace(".0","").replace(" ","").replace("-","")
 
         if not telefono.startswith("57"):
             telefono = "57" + telefono
@@ -215,8 +241,8 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
         col1,col2,col3,col4 = st.columns(4)
 
-        col1.write(f"**{row['Placa']}**")
-        col1.write(row["Cliente"])
+        col1.write(f"**{row.get('Placa','')}**")
+        col1.write(row.get("Cliente",""))
 
         col2.write(row["Fecha_Renovacion"].date())
 
@@ -229,15 +255,16 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
         df.loc[i,"Estado"] = estado
 
-        url = link_whatsapp(
-            row["Cliente"],
-            row["Placa"],
-            row["Telefono"],
-            row["Fecha_Renovacion"]
-        )
+        if "Telefono" in df.columns:
+            url = link_whatsapp(
+                row.get("Cliente",""),
+                row.get("Placa",""),
+                row.get("Telefono",""),
+                row["Fecha_Renovacion"]
+            )
 
-        if url:
-            col4.link_button("📲 WhatsApp", url)
+            if url:
+                col4.link_button("📲 WhatsApp", url)
 
         st.divider()
 
@@ -278,4 +305,5 @@ if st.session_state.rol == "admin":
 
         for user in usuarios.keys():
             st.write(user)
+
 
