@@ -4,7 +4,7 @@ import urllib.parse
 import os
 import json
 import shutil
-import plotly.express as px  # Asegúrate de tener plotly instalado
+import plotly.express as px  # Para gráficos interactivos
 
 # ======================================================
 # CONFIGURACIÓN
@@ -114,7 +114,7 @@ os.makedirs(carpeta_usuario, exist_ok=True)
 tabs_lista = ["📊 CRM"]
 if rol_actual == "admin":
     tabs_lista.append("👑 Panel Administración")
-    tabs_lista.append("📈 Dashboard Visual")  # Nueva pestaña de gráficos
+    tabs_lista.append("📈 Dashboard Visual")  # Nueva pestaña
 
 tabs_objs = st.tabs(tabs_lista)
 
@@ -425,16 +425,14 @@ if rol_actual == "admin":
             # Contar estados
             conteo_estados = df["Estado"].value_counts().reindex(["Pendiente","Agendado","Renovado"], fill_value=0)
 
-            # Gráfico de barras
+            # ====== Gráfico de barras cuadrado ======
             st.subheader("Gráfico de barras de Estados")
-            st.bar_chart(conteo_estados)
-
-            # Gráfico de pastel
-            st.subheader("Gráfico de pastel de Estados")
-            fig = px.pie(
-                names=conteo_estados.index,
-                values=conteo_estados.values,
-                title="Proporción de Estados",
+            fig_bar = px.bar(
+                x=conteo_estados.index,
+                y=conteo_estados.values,
+                text=conteo_estados.values,
+                width=400,  # ancho cuadrado
+                height=400, # alto cuadrado
                 color=conteo_estados.index,
                 color_discrete_map={
                     "Pendiente":"red",
@@ -442,6 +440,52 @@ if rol_actual == "admin":
                     "Renovado":"green"
                 }
             )
-            st.plotly_chart(fig, use_container_width=True)
+            fig_bar.update_layout(
+                showlegend=False,
+                yaxis_title="Cantidad",
+                xaxis_title="Estado",
+                margin=dict(l=20,r=20,t=30,b=20)
+            )
+            st.plotly_chart(fig_bar, use_container_width=False)
+
+            # ====== Gráfico de pastel cuadrado ======
+            st.subheader("Gráfico de pastel de Estados")
+            fig_pie = px.pie(
+                names=conteo_estados.index,
+                values=conteo_estados.values,
+                title="Proporción de Estados",
+                width=400,
+                height=400,
+                color=conteo_estados.index,
+                color_discrete_map={
+                    "Pendiente":"red",
+                    "Agendado":"yellow",
+                    "Renovado":"green"
+                }
+            )
+            st.plotly_chart(fig_pie, use_container_width=False)
+
+            # ====== DESCARGA DE DATOS ======
+            st.subheader("💾 Descargar datos filtrados")
+            
+            # CSV
+            csv = df_filtrado.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Descargar CSV",
+                data=csv,
+                file_name='datos_filtrados.csv',
+                mime='text/csv'
+            )
+
+            # Excel
+            excel_path = "datos_filtrados.xlsx"
+            df_filtrado.to_excel(excel_path, index=False)
+            with open(excel_path, "rb") as f:
+                st.download_button(
+                    label="Descargar Excel",
+                    data=f,
+                    file_name="datos_filtrados.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
 
 
