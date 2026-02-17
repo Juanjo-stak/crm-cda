@@ -104,9 +104,12 @@ else:
 
 with tab_crm:
 
+    # --------------------------------------------------
+    # SUBIR BASE
+    # --------------------------------------------------
+
     st.sidebar.header("📂 Bases de Datos")
 
-    # SUBIR BASE
     archivo_subido = st.sidebar.file_uploader("Subir base Excel", type=["xlsx"])
 
     if archivo_subido:
@@ -116,11 +119,13 @@ with tab_crm:
         st.sidebar.success("Base guardada correctamente")
         st.rerun()
 
+    # --------------------------------------------------
     # LISTAR BASES
+    # --------------------------------------------------
+
     bases_disponibles = []
 
     if rol_actual == "admin":
-
         for usuario in os.listdir(CARPETA_BASES):
             ruta_user = os.path.join(CARPETA_BASES, usuario)
             if not os.path.isdir(ruta_user):
@@ -128,9 +133,7 @@ with tab_crm:
             for archivo in os.listdir(ruta_user):
                 ruta_archivo = os.path.join(ruta_user, archivo)
                 if os.path.isfile(ruta_archivo) and archivo.endswith(".xlsx"):
-                    bases_disponibles.append(
-                        (f"{usuario} - {archivo}", ruta_archivo)
-                    )
+                    bases_disponibles.append((f"{usuario} - {archivo}", ruta_archivo))
     else:
         for archivo in os.listdir(carpeta_usuario):
             ruta_archivo = os.path.join(carpeta_usuario, archivo)
@@ -145,9 +148,9 @@ with tab_crm:
     seleccion = st.sidebar.selectbox("Seleccionar base", nombres)
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
-    # ==================================================
+    # --------------------------------------------------
     # CARGAR DATA
-    # ==================================================
+    # --------------------------------------------------
 
     df = pd.read_excel(ARCHIVO)
     df.columns = df.columns.str.strip()
@@ -180,90 +183,54 @@ with tab_crm:
         df["Estado"] = "Pendiente"
 
     # ==================================================
-    # FILTROS RESTAURADOS
-    # ==================================================
-
-    st.sidebar.markdown("## 🔎 Filtros")
-
-    filtro_estado = st.sidebar.multiselect(
-        "Filtrar por estado",
-        ["Pendiente","Agendado","Renovado"],
-        default=["Pendiente","Agendado","Renovado"]
-    )
-
-    busqueda = st.sidebar.text_input("Buscar por placa o cliente")
-
-    df_filtrado = df[df["Estado"].isin(filtro_estado)]
-
-    if busqueda:
-        df_filtrado = df_filtrado[
-            df_filtrado.apply(
-                lambda row: busqueda.lower() in str(row).lower(),
-                axis=1
-            )
-        ]
-
-    # ==================================================
     # DASHBOARD
     # ==================================================
-
 
     st.markdown("## 📊 Dashboard")
 
     c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Total", len(df_filtrado))
-    c2.metric("Pendientes", (df_filtrado["Estado"]=="Pendiente").sum())
-    c3.metric("Agendados", (df_filtrado["Estado"]=="Agendado").sum())
-    c4.metric("Renovados", (df_filtrado["Estado"]=="Renovado").sum())
+
+    c1.metric("Total", len(df))
+    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
+    c3.metric("Agendados", (df["Estado"]=="Agendado").sum())
+    c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
 
     st.divider()
-# =========================
-# FILTROS
-# =========================
 
-st.sidebar.header("🔎 Filtros")
+    # ==================================================
+    # FILTROS EN COLUMNAS
+    # ==================================================
 
-# Validar que exista la columna Sede
-if "Sede" not in df.columns:
-    df["Sede"] = "Sin sede"
+    st.markdown("## 🔎 Filtros")
 
-# Fechas mínima y máxima
-fecha_min = df["Fecha_Renovacion"].min()
-fecha_max = df["Fecha_Renovacion"].max()
+    col_f1, col_f2, col_f3 = st.columns(3)
 
-# Si por alguna razón están vacías
-if pd.isna(fecha_min) or pd.isna(fecha_max):
-    st.warning("No hay fechas válidas en la base")
-    st.stop()
+    if "Sede" not in df.columns:
+        df["Sede"] = "Sin sede"
 
-fecha_inicio = st.sidebar.date_input(
-    "Desde",
-    fecha_min.date()
-)
+    fecha_min = df["Fecha_Renovacion"].min()
+    fecha_max = df["Fecha_Renovacion"].max()
 
-fecha_fin = st.sidebar.date_input(
-    "Hasta",
-    fecha_max.date()
-)
+    with col_f1:
+        fecha_inicio = st.date_input("Desde", fecha_min.date())
 
-# Selector de sede
-sedes = ["Todas"] + sorted(
-    df["Sede"].dropna().astype(str).unique().tolist()
-)
+    with col_f2:
+        fecha_fin = st.date_input("Hasta", fecha_max.date())
 
-sede_sel = st.sidebar.selectbox("Sede", sedes)
+    with col_f3:
+        sedes = ["Todas"] + sorted(df["Sede"].dropna().astype(str).unique().tolist())
+        sede_sel = st.selectbox("Sede", sedes)
 
-# =========================
-# APLICAR FILTROS
-# =========================
+    df_filtrado = df[
+        (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
+        (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
+    ]
 
-df_filtrado = df[
-    (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
-    (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
-]
+    if sede_sel != "Todas":
+        df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
 
-if sede_sel != "Todas":
-    df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
+    st.divider()
+
     # ==================================================
     # WHATSAPP
     # ==================================================
@@ -331,7 +298,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
         st.success("Cambios guardados correctamente")
 
 # ======================================================
-# ================= PANEL ADMIN ========================
+# PANEL ADMIN
 # ======================================================
 
 if rol_actual == "admin":
@@ -366,20 +333,17 @@ if rol_actual == "admin":
         for user,datos in usuarios.items():
 
             col1,col2 = st.columns([3,1])
-
             col1.write(f"👤 {user} ({datos['rol']})")
 
             if user != "admin":
                 if col2.button("🗑 Eliminar", key=f"del_{user}"):
-
                     del usuarios[user]
                     guardar_usuarios(usuarios)
-
                     carpeta_eliminar = os.path.join(CARPETA_BASES,user)
                     if os.path.exists(carpeta_eliminar):
                         shutil.rmtree(carpeta_eliminar)
-
                     st.success("Usuario eliminado")
                     st.rerun()
+
 
 
