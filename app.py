@@ -223,7 +223,7 @@ def link_whatsapp(nombre, placa, telefono, sede, fecha):
         telefono = "57" + telefono
 
     # Formatear fecha en español
-   fecha_texto = fecha.strftime("%A %d de %B de %Y")
+    fecha_texto = fecha.strftime("%A %d de %B de %Y")
 
     mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
@@ -236,7 +236,6 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
     mensaje = urllib.parse.quote(mensaje)
 
     return f"https://api.whatsapp.com/send?phone={telefono}&text={mensaje}"
-
 # =========================
 # LISTADO
 # =========================
