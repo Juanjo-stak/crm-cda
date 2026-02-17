@@ -63,6 +63,7 @@ def pantalla_login():
 
     if st.button("Ingresar"):
         usuarios = cargar_usuarios()
+
         if user in usuarios and usuarios[user]["password"] == pwd:
             st.session_state.login = True
             st.session_state.usuario = user
@@ -82,7 +83,7 @@ if not st.session_state.login:
 usuario_actual = st.session_state.usuario
 rol_actual = st.session_state.rol
 
-st.title("Renovaciones")
+st.title("  Renovaciones ")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
 # ======================================================
@@ -90,6 +91,7 @@ st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 # ======================================================
 
 col_logout1, col_logout2 = st.columns([6,1])
+
 with col_logout2:
     if st.button("🚪 Cerrar sesión"):
         st.session_state.login = False
@@ -182,12 +184,22 @@ with tab_crm:
     def link_whatsapp(nombre, placa, telefono, fecha):
         if pd.isna(telefono):
             return None
+
         telefono = str(telefono).replace(".0","").replace(" ","").replace("-","")
+
         if not telefono.startswith("57"):
             telefono = "57" + telefono
+
         fecha_texto = fecha.strftime("%d/%m/%Y")
-        mensaje = f"Hola {nombre}, tu vehículo con placa {placa} vence el {fecha_texto}. ¿Deseas agendar tu revisión?"
+
+        mensaje = f"""Hola {nombre}, soy Juan José 👋
+
+Tu vehículo con placa {placa} vence el {fecha_texto}.
+
+¿Deseas agendar tu revisión? 🚗✅"""
+
         mensaje = urllib.parse.quote(mensaje)
+
         return f"https://wa.me/{telefono}?text={mensaje}"
 
     estados = ["Pendiente","Agendado","Renovado"]
@@ -217,16 +229,17 @@ with tab_crm:
 
         if "Telefono" in df.columns:
 
-            # WhatsApp verde
+            # Botón WhatsApp verde
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
                 row.get("Telefono",""),
                 row["Fecha_Renovacion"]
             )
+
             if url:
                 col4.markdown(
-                    f'''
+                    f"""
                     <a href="{url}" target="_blank">
                         <button style="
                             width:100%;
@@ -241,17 +254,22 @@ with tab_crm:
                             📲 WhatsApp
                         </button>
                     </a>
-                    ''', unsafe_allow_html=True
+                    """,
+                    unsafe_allow_html=True
                 )
 
-            # Llamada azul
+            # Botón Llamar azul
             telefono = str(row.get("Telefono","")).replace(".0","").replace(" ","").replace("-","")
+
             if telefono:
+
                 if not telefono.startswith("57"):
                     telefono = "57" + telefono
+
                 link_llamada = f"tel:+{telefono}"
+
                 col4.markdown(
-                    f'''
+                    f"""
                     <a href="{link_llamada}">
                         <button style="
                             width:100%;
@@ -265,7 +283,8 @@ with tab_crm:
                             📞 Llamar
                         </button>
                     </a>
-                    ''', unsafe_allow_html=True
+                    """,
+                    unsafe_allow_html=True
                 )
 
         st.divider()
