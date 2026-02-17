@@ -313,7 +313,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
                 row.get("Telefono",""),
                 row["Fecha_Renovacion"]
             )
-            if url:
+           if url:
     col4.markdown(
         f"""
         <a href="{url}" target="_blank">
@@ -332,6 +332,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
         """,
         unsafe_allow_html=True
     )
+
 
 
         # ==================================================
