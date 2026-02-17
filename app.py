@@ -4,8 +4,7 @@ import urllib.parse
 import os
 import json
 import shutil
-import plotly.express as px  # Para gráficos interactivos
-import plotly.io as pio
+import plotly.express as px
 from io import BytesIO
 
 # ======================================================
@@ -373,16 +372,13 @@ if rol_actual == "admin":
                 st.subheader("Gráfico de barras")
                 st.plotly_chart(fig_bar, use_container_width=False)
                 # Descargar gráfico como imagen
-                buf_bar = BytesIO()
-                pio.write_image(fig_bar, buf_bar, format='png')
+                buf_bar = fig_bar.to_image(format="png", width=400, height=400, scale=2)
                 st.download_button("📥 Descargar barras", buf_bar, "grafico_barras.png", "image/png")
 
             with col_g2:
                 st.subheader("Gráfico de pastel")
                 st.plotly_chart(fig_pie, use_container_width=False)
                 # Descargar gráfico como imagen
-                buf_pie = BytesIO()
-                pio.write_image(fig_pie, buf_pie, format='png')
+                buf_pie = fig_pie.to_image(format="png", width=400, height=400, scale=2)
                 st.download_button("📥 Descargar pastel", buf_pie, "grafico_pastel.png", "image/png")
-
 
