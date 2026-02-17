@@ -36,10 +36,8 @@ def guardar_usuarios(data):
 
 if "login" not in st.session_state:
     st.session_state.login = False
-
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
-
 if "rol" not in st.session_state:
     st.session_state.rol = None
 
@@ -69,14 +67,14 @@ if not st.session_state.login:
     st.stop()
 
 # =========================
-# TÍTULO PRINCIPAL
+# HEADER
 # =========================
 
 st.title("🚗 CRM Renovaciones CDA")
 st.write(f"👤 Usuario: {st.session_state.usuario} | Rol: {st.session_state.rol}")
 
 # =========================
-# CREAR PESTAÑAS
+# PESTAÑAS
 # =========================
 
 if st.session_state.rol == "admin":
@@ -96,10 +94,7 @@ with tab1:
 
     st.sidebar.header("📂 Bases de datos")
 
-    archivo_subido = st.sidebar.file_uploader(
-        "Subir nueva base",
-        type=["xlsx"]
-    )
+    archivo_subido = st.sidebar.file_uploader("Subir nueva base", type=["xlsx"])
 
     if archivo_subido:
         ruta_guardado = os.path.join(CARPETA_BASES, archivo_subido.name)
@@ -117,11 +112,7 @@ with tab1:
         st.warning("⚠️ No hay bases cargadas aún")
         st.stop()
 
-    base_seleccionada = st.sidebar.selectbox(
-        "Seleccionar base",
-        bases_disponibles
-    )
-
+    base_seleccionada = st.sidebar.selectbox("Seleccionar base", bases_disponibles)
     ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
 
     # -------------------------
@@ -160,6 +151,35 @@ with tab1:
     df = cargar_datos(ARCHIVO)
 
     # -------------------------
+    # FILTROS
+    # -------------------------
+
+    st.markdown("## 🔎 Filtros")
+
+    colf1, colf2, colf3 = st.columns(3)
+
+    fecha_inicio = colf1.date_input(
+        "Desde",
+        df["Fecha_Renovacion"].min().date()
+    )
+
+    fecha_fin = colf2.date_input(
+        "Hasta",
+        df["Fecha_Renovacion"].max().date()
+    )
+
+    sedes = ["Todas"] + sorted(df["Sede"].dropna().unique().tolist())
+    sede_sel = colf3.selectbox("Sede", sedes)
+
+    df_filtrado = df[
+        (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
+        (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
+    ]
+
+    if sede_sel != "Todas":
+        df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
+
+    # -------------------------
     # DASHBOARD
     # -------------------------
 
@@ -167,37 +187,13 @@ with tab1:
 
     c1,c2,c3,c4,c5 = st.columns(5)
 
-    c1.metric("Total", len(df))
-    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
-    c3.metric("Contactados", (df["Estado"]=="Contactado").sum())
-    c4.metric("Agendados", (df["Estado"]=="Agendado").sum())
-    c5.metric("Renovados", (df["Estado"]=="Renovado").sum())
-# =========================
-# FILTROS
-# =========================
+    c1.metric("Total", len(df_filtrado))
+    c2.metric("Pendientes", (df_filtrado["Estado"]=="Pendiente").sum())
+    c3.metric("Contactados", (df_filtrado["Estado"]=="Contactado").sum())
+    c4.metric("Agendados", (df_filtrado["Estado"]=="Agendado").sum())
+    c5.metric("Renovados", (df_filtrado["Estado"]=="Renovado").sum())
 
-st.sidebar.header("🔎 Filtros")
-
-fecha_inicio = st.sidebar.date_input(
-    "Desde",
-    df["Fecha_Renovacion"].min().date()
-)
-
-fecha_fin = st.sidebar.date_input(
-    "Hasta",
-    df["Fecha_Renovacion"].max().date()
-)
-
-sedes = ["Todas"] + sorted(df["Sede"].dropna().unique().tolist())
-sede_sel = st.sidebar.selectbox("Sede", sedes)
-
-df_filtrado = df[
-    (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
-    (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
-]
-
-if sede_sel != "Todas":
-    df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
+    st.divider()
 
     # -------------------------
     # FUNCIÓN WHATSAPP
@@ -237,7 +233,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
     estados = ["Pendiente","Contactado","Agendado","Renovado"]
 
-    for i,row in df.iterrows():
+    for i,row in df_filtrado.iterrows():
 
         col1,col2,col3,col4 = st.columns([2,2,2,2])
 
@@ -275,9 +271,8 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
         df.to_excel(ARCHIVO, index=False)
         st.success("Cambios guardados ✅")
 
-
 # ==========================================================
-# =================== TAB ADMINISTRACIÓN ===================
+# =================== PANEL ADMIN ==========================
 # ==========================================================
 
 if st.session_state.rol == "admin":
