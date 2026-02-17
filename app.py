@@ -83,7 +83,7 @@ if not st.session_state.login:
 usuario_actual = st.session_state.usuario
 rol_actual = st.session_state.rol
 
-st.title("🚗 CRM Renovaciones CDA")
+st.title("  Renovaciones ")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
 # ======================================================
