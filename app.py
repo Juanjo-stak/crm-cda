@@ -315,6 +315,20 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
             )
             if url:
                 col4.link_button("📲 WhatsApp", url)
+                if url:
+    col4.markdown(
+        f'<a href="{url}" target="_blank">'
+        f'<button style="width:100%;padding:8px;'
+        f'border-radius:8px;'
+        f'background-color:#25D366;'
+        f'color:white;'
+        f'font-weight:bold;'
+        f'border:none;">'
+        f'📲 WhatsApp'
+        f'</button></a>',
+        unsafe_allow_html=True
+    )
+
         # ==================================================
         # 📞 BOTÓN LLAMAR (AGREGADO)
         # ==================================================
