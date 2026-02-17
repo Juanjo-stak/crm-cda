@@ -256,7 +256,7 @@ with tab_crm:
     st.divider()
 
     # ==================================================
-    # WHATSAPP
+    # WHATSAPP Y LLAMADAS
     # ==================================================
 
     def link_whatsapp(nombre, placa, telefono, fecha):
@@ -311,7 +311,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
-                row.get("Telefono",""),
+                row["Telefono",""],
                 row["Fecha_Renovacion"]
             )
 
@@ -386,9 +386,13 @@ if rol_actual == "admin":
 
         for user,datos in usuarios.items():
 
-            col1,col2,col3 = st.columns([3,2,1])
+            col1,col2,col3 = st.columns([3,1,1])
             col1.write(f"👤 {user} ({datos['rol']})")
-            col2.write(f"🔑 {datos['password']}")  # ✅ Mostrar contraseña
+
+            # 🔑 Botón que revela contraseña
+            mostrar = col2.button("🔑 Mostrar", key=f"show_{user}")
+            if mostrar:
+                col2.code(datos["password"], language="text")
 
             if user != "admin":
                 if col3.button("🗑 Eliminar", key=f"del_{user}"):
@@ -399,4 +403,5 @@ if rol_actual == "admin":
                         shutil.rmtree(carpeta_eliminar)
                     st.success("Usuario eliminado")
                     st.rerun()
+
 
