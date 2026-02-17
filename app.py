@@ -206,6 +206,53 @@ with tab_crm:
     # ==================================================
     # DASHBOARD
     # ==================================================
+# =========================
+# FILTROS
+# =========================
+
+st.sidebar.header("🔎 Filtros")
+
+# Validar que exista la columna Sede
+if "Sede" not in df.columns:
+    df["Sede"] = "Sin sede"
+
+# Fechas mínima y máxima
+fecha_min = df["Fecha_Renovacion"].min()
+fecha_max = df["Fecha_Renovacion"].max()
+
+# Si por alguna razón están vacías
+if pd.isna(fecha_min) or pd.isna(fecha_max):
+    st.warning("No hay fechas válidas en la base")
+    st.stop()
+
+fecha_inicio = st.sidebar.date_input(
+    "Desde",
+    fecha_min.date()
+)
+
+fecha_fin = st.sidebar.date_input(
+    "Hasta",
+    fecha_max.date()
+)
+
+# Selector de sede
+sedes = ["Todas"] + sorted(
+    df["Sede"].dropna().astype(str).unique().tolist()
+)
+
+sede_sel = st.sidebar.selectbox("Sede", sedes)
+
+# =========================
+# APLICAR FILTROS
+# =========================
+
+df_filtrado = df[
+    (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
+    (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
+]
+
+if sede_sel != "Todas":
+    df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
 
     st.markdown("## 📊 Dashboard")
 
