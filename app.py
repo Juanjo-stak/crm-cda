@@ -410,7 +410,7 @@ if rol_actual == "admin":
                     st.rerun()
 
 # ======================================================
-# TAB DASHBOARD VISUAL (SOLO ADMIN) - GRÁFICOS LADO A LADO
+# TAB DASHBOARD VISUAL (SOLO ADMIN)
 # ======================================================
 
 if rol_actual == "admin":
@@ -476,4 +476,3 @@ if rol_actual == "admin":
                 st.plotly_chart(fig_pie, use_container_width=False)
                 buf_pie = fig_pie.to_image(format="png", width=400, height=400, scale=2)
                 st.download_button("📥 Descargar pastel", buf_pie, "grafico_pastel.png", "image/png")
-
