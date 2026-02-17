@@ -425,16 +425,14 @@ if rol_actual == "admin":
             # Contar estados
             conteo_estados = df["Estado"].value_counts().reindex(["Pendiente","Agendado","Renovado"], fill_value=0)
 
-            # ====== Crear dos columnas para gráficos lado a lado ======
-            col_g1, col_g2 = st.columns(2)
-
-            # ====== Gráfico de barras ======
+            # ====== Gráfico de barras cuadrado ======
+            st.subheader("Gráfico de barras de Estados")
             fig_bar = px.bar(
                 x=conteo_estados.index,
                 y=conteo_estados.values,
                 text=conteo_estados.values,
-                width=400,
-                height=400,
+                width=400,  # ancho cuadrado
+                height=400, # alto cuadrado
                 color=conteo_estados.index,
                 color_discrete_map={
                     "Pendiente":"red",
@@ -448,8 +446,10 @@ if rol_actual == "admin":
                 xaxis_title="Estado",
                 margin=dict(l=20,r=20,t=30,b=20)
             )
+            st.plotly_chart(fig_bar, use_container_width=False)
 
-            # ====== Gráfico de pastel ======
+            # ====== Gráfico de pastel cuadrado ======
+            st.subheader("Gráfico de pastel de Estados")
             fig_pie = px.pie(
                 names=conteo_estados.index,
                 values=conteo_estados.values,
@@ -463,16 +463,28 @@ if rol_actual == "admin":
                     "Renovado":"green"
                 }
             )
+            st.plotly_chart(fig_pie, use_container_width=False)
 
-            # ====== Mostrar gráficos y botones de descarga ======
-            with col_g1:
-                st.subheader("Gráfico de barras")
-                st.plotly_chart(fig_bar, use_container_width=False)
-                buf_bar = fig_bar.to_image(format="png", width=400, height=400, scale=2)
-                st.download_button("📥 Descargar barras", buf_bar, "grafico_barras.png", "image/png")
+            # ====== DESCARGA DE DATOS ======
+            st.subheader("💾 Descargar datos filtrados")
+            
+            # CSV
+            csv = df_filtrado.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Descargar CSV",
+                data=csv,
+                file_name='datos_filtrados.csv',
+                mime='text/csv'
+            )
 
-            with col_g2:
-                st.subheader("Gráfico de pastel")
-                st.plotly_chart(fig_pie, use_container_width=False)
-                buf_pie = fig_pie.to_image(format="png", width=400, height=400, scale=2)
-                st.download_button("📥 Descargar pastel", buf_pie, "grafico_pastel.png", "image/png")
+            # Excel
+            excel_path = "datos_filtrados.xlsx"
+            df_filtrado.to_excel(excel_path, index=False)
+            with open(excel_path, "rb") as f:
+                st.download_button(
+                    label="Descargar Excel",
+                    data=f,
+                    file_name="datos_filtrados.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
