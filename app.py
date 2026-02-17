@@ -87,7 +87,7 @@ st.title("  Renovaciones ")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
 # ======================================================
-# 🔴 CERRAR SESIÓN
+# 🔴 AGREGADO: CERRAR SESIÓN
 # ======================================================
 
 col_logout1, col_logout2 = st.columns([6,1])
@@ -157,6 +157,10 @@ with tab_crm:
     seleccion = st.sidebar.selectbox("Seleccionar base", nombres)
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
+    # ==================================================
+    # ELIMINAR BASE (YA AGREGADO ANTES)
+    # ==================================================
+
     st.sidebar.divider()
     st.sidebar.subheader("🗑 Eliminar Base de Datos")
 
@@ -167,6 +171,10 @@ with tab_crm:
             st.rerun()
         except Exception:
             st.sidebar.error("Error al eliminar la base")
+
+    # ==================================================
+    # CARGAR DATA
+    # ==================================================
 
     df = pd.read_excel(ARCHIVO)
     df.columns = df.columns.str.strip()
@@ -198,6 +206,10 @@ with tab_crm:
     if "Estado" not in df.columns:
         df["Estado"] = "Pendiente"
 
+    # ==================================================
+    # DASHBOARD
+    # ==================================================
+
     st.markdown("## 📊 Dashboard")
 
     c1,c2,c3,c4 = st.columns(4)
@@ -208,6 +220,10 @@ with tab_crm:
     c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
 
     st.divider()
+
+    # ==================================================
+    # FILTROS
+    # ==================================================
 
     st.markdown("## 🔎 Filtros")
 
@@ -238,6 +254,10 @@ with tab_crm:
         df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
 
     st.divider()
+
+    # ==================================================
+    # WHATSAPP + LLAMADA
+    # ==================================================
 
     def link_whatsapp(nombre, placa, telefono, fecha):
 
@@ -288,6 +308,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
         if "Telefono" in df.columns:
 
+            # WhatsApp verde
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
@@ -315,6 +336,67 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
                     unsafe_allow_html=True
                 )
 
+            # Botón llamar
+            telefono = str(row.get("Telefono","")).replace(".0","").replace(" ","").replace("-","")
+            if telefono and not telefono.startswith("57"):
+                telefono = "57" + telefono
+            link_llamada = f"tel:+{telefono}"
+            col4.markdown(
+                f'<a href="{link_llamada}">'
+                f'<button style="width:100%;padding:8px;'
+                f'border-radius:8px;background-color:#1f77b4;'
+                f'color:white;border:none;margin-top:5px;">📞 Llamar</button></a>',
+                unsafe_allow_html=True
+            )
+
         st.divider()
+
+# ======================================================
+# PANEL ADMIN
+# ======================================================
+
+if rol_actual == "admin":
+
+    with tab_admin:
+
+        st.header("👑 Panel Administración")
+
+        usuarios = cargar_usuarios()
+
+        nuevo_user = st.text_input("Nuevo usuario")
+        nueva_pass = st.text_input("Contraseña", type="password")
+
+        if st.button("Crear Usuario"):
+            if nuevo_user in usuarios:
+                st.error("El usuario ya existe")
+            elif nuevo_user.strip()=="" or nueva_pass.strip()=="":
+                st.error("Campos vacíos")
+            else:
+                usuarios[nuevo_user] = {
+                    "password": nueva_pass,
+                    "rol": "usuario"
+                }
+                guardar_usuarios(usuarios)
+                os.makedirs(os.path.join(CARPETA_BASES,nuevo_user),exist_ok=True)
+                st.success("Usuario creado correctamente")
+                st.rerun()
+
+        st.divider()
+        st.subheader("Usuarios registrados")
+
+        for user,datos in usuarios.items():
+
+            col1,col2 = st.columns([3,1])
+            col1.write(f"👤 {user} ({datos['rol']})")
+
+            if user != "admin":
+                if col2.button("🗑 Eliminar", key=f"del_{user}"):
+                    del usuarios[user]
+                    guardar_usuarios(usuarios)
+                    carpeta_eliminar = os.path.join(CARPETA_BASES,user)
+                    if os.path.exists(carpeta_eliminar):
+                        shutil.rmtree(carpeta_eliminar)
+                    st.success("Usuario eliminado")
+                    st.rerun()
 
 
