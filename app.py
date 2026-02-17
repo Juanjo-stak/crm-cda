@@ -63,7 +63,6 @@ def pantalla_login():
 
     if st.button("Ingresar"):
         usuarios = cargar_usuarios()
-
         if user in usuarios and usuarios[user]["password"] == pwd:
             st.session_state.login = True
             st.session_state.usuario = user
@@ -83,15 +82,14 @@ if not st.session_state.login:
 usuario_actual = st.session_state.usuario
 rol_actual = st.session_state.rol
 
-st.title("  Renovaciones ")
+st.title("Renovaciones")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
 # ======================================================
-# 🔴 CERRAR SESIÓN
+# CERRAR SESIÓN
 # ======================================================
 
 col_logout1, col_logout2 = st.columns([6,1])
-
 with col_logout2:
     if st.button("🚪 Cerrar sesión"):
         st.session_state.login = False
@@ -157,6 +155,9 @@ with tab_crm:
     seleccion = st.sidebar.selectbox("Seleccionar base", nombres)
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
+    # ==================================================
+    # ELIMINAR BASE
+    # ==================================================
     st.sidebar.divider()
     st.sidebar.subheader("🗑 Eliminar Base de Datos")
 
@@ -168,109 +169,37 @@ with tab_crm:
         except Exception:
             st.sidebar.error("Error al eliminar la base")
 
+    # ==================================================
+    # CARGAR DATA
+    # ==================================================
+
     df = pd.read_excel(ARCHIVO)
     df.columns = df.columns.str.strip()
-
-    columnas_lower = {col.lower(): col for col in df.columns}
-    posibles_fechas = ["fecha_renovacion","fecha","vencimiento","fecha vencimiento"]
-
-    columna_fecha = None
-    for posible in posibles_fechas:
-        if posible in columnas_lower:
-            columna_fecha = columnas_lower[posible]
-            break
-
-    if columna_fecha is None:
-        st.error("No se encontró columna de fecha")
-        st.write("Columnas detectadas:", list(df.columns))
-        st.stop()
-
-    df.rename(columns={columna_fecha: "Fecha_Renovacion"}, inplace=True)
-
-    df["Fecha_Renovacion"] = pd.to_datetime(
-        df["Fecha_Renovacion"],
-        errors="coerce",
-        dayfirst=True
-    )
-
-    df = df[df["Fecha_Renovacion"].notna()]
 
     if "Estado" not in df.columns:
         df["Estado"] = "Pendiente"
 
-    st.markdown("## 📊 Dashboard")
-
-    c1,c2,c3,c4 = st.columns(4)
-
-    c1.metric("Total", len(df))
-    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
-    c3.metric("Agendados", (df["Estado"]=="Agendado").sum())
-    c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
-
-    st.divider()
-
-    st.markdown("## 🔎 Filtros")
-
-    col_f1, col_f2, col_f3 = st.columns(3)
-
-    if "Sede" not in df.columns:
-        df["Sede"] = "Sin sede"
-
-    fecha_min = df["Fecha_Renovacion"].min()
-    fecha_max = df["Fecha_Renovacion"].max()
-
-    with col_f1:
-        fecha_inicio = st.date_input("Desde", fecha_min.date())
-
-    with col_f2:
-        fecha_fin = st.date_input("Hasta", fecha_max.date())
-
-    with col_f3:
-        sedes = ["Todas"] + sorted(df["Sede"].dropna().astype(str).unique().tolist())
-        sede_sel = st.selectbox("Sede", sedes)
-
-    df_filtrado = df[
-        (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
-        (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
-    ]
-
-    if sede_sel != "Todas":
-        df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
-
-    st.divider()
-
     def link_whatsapp(nombre, placa, telefono, fecha):
-
         if pd.isna(telefono):
             return None
-
         telefono = str(telefono).replace(".0","").replace(" ","").replace("-","")
-
         if not telefono.startswith("57"):
             telefono = "57" + telefono
-
         fecha_texto = fecha.strftime("%d/%m/%Y")
-
-        mensaje = f"""Hola {nombre}, soy Juan José 👋
-
-Tu vehículo con placa {placa} vence el {fecha_texto}.
-
-¿Deseas agendar tu revisión? 🚗✅"""
-
+        mensaje = f"Hola {nombre}, tu vehículo con placa {placa} vence el {fecha_texto}. ¿Deseas agendar tu revisión?"
         mensaje = urllib.parse.quote(mensaje)
-
         return f"https://wa.me/{telefono}?text={mensaje}"
 
     estados = ["Pendiente","Agendado","Renovado"]
 
-    for i,row in df_filtrado.iterrows():
+    for i,row in df.iterrows():
 
         col1,col2,col3,col4 = st.columns(4)
 
         col1.write(f"**{row.get('Placa','')}**")
         col1.write(row.get("Cliente",""))
 
-        col2.write(row["Fecha_Renovacion"].date())
+        col2.write(row["Fecha_Renovacion"])
 
         estado_actual = row["Estado"]
 
@@ -288,16 +217,16 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
         if "Telefono" in df.columns:
 
+            # WhatsApp verde
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
                 row.get("Telefono",""),
                 row["Fecha_Renovacion"]
             )
-
             if url:
                 col4.markdown(
-                    f"""
+                    f'''
                     <a href="{url}" target="_blank">
                         <button style="
                             width:100%;
@@ -307,12 +236,37 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
                             color:white;
                             font-weight:bold;
                             border:none;
-                            cursor:pointer;">
+                            cursor:pointer;
+                            margin-bottom:5px;">
                             📲 WhatsApp
                         </button>
                     </a>
-                    """,
-                    unsafe_allow_html=True
+                    ''', unsafe_allow_html=True
+                )
+
+            # Llamada azul
+            telefono = str(row.get("Telefono","")).replace(".0","").replace(" ","").replace("-","")
+            if telefono:
+                if not telefono.startswith("57"):
+                    telefono = "57" + telefono
+                link_llamada = f"tel:+{telefono}"
+                col4.markdown(
+                    f'''
+                    <a href="{link_llamada}">
+                        <button style="
+                            width:100%;
+                            padding:10px;
+                            border-radius:8px;
+                            background-color:#1f77b4;
+                            color:white;
+                            font-weight:bold;
+                            border:none;
+                            cursor:pointer;">
+                            📞 Llamar
+                        </button>
+                    </a>
+                    ''', unsafe_allow_html=True
                 )
 
         st.divider()
+
