@@ -40,10 +40,8 @@ def guardar_usuarios(data):
 
 if "login" not in st.session_state:
     st.session_state.login = False
-
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
-
 if "rol" not in st.session_state:
     st.session_state.rol = None
 
@@ -73,17 +71,27 @@ if not st.session_state.login:
     st.stop()
 
 # =========================
+# CREAR CARPETA DEL USUARIO
+# =========================
+
+usuario_actual = st.session_state.usuario
+rol_actual = st.session_state.rol
+
+carpeta_usuario = os.path.join(CARPETA_BASES, usuario_actual)
+os.makedirs(carpeta_usuario, exist_ok=True)
+
+# =========================
 # HEADER
 # =========================
 
 st.title("🚗 CRM Renovaciones CDA")
-st.write(f"👤 Usuario: {st.session_state.usuario} | Rol: {st.session_state.rol}")
+st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
 # =========================
 # PESTAÑAS
 # =========================
 
-if st.session_state.rol == "admin":
+if rol_actual == "admin":
     tab1, tab2 = st.tabs(["📊 CRM", "👑 Panel Administración"])
 else:
     tab1 = st.tabs(["📊 CRM"])[0]
@@ -96,99 +104,99 @@ with tab1:
 
     st.sidebar.header("📂 Bases de datos")
 
+    # -------------------------
+    # SUBIR BASE
+    # -------------------------
+
     archivo_subido = st.sidebar.file_uploader("Subir nueva base", type=["xlsx"])
 
     if archivo_subido:
-        ruta_guardado = os.path.join(CARPETA_BASES, archivo_subido.name)
+        ruta_guardado = os.path.join(carpeta_usuario, archivo_subido.name)
         with open(ruta_guardado, "wb") as f:
             f.write(archivo_subido.getbuffer())
         st.sidebar.success("✅ Base guardada")
         st.rerun()
 
-    bases_disponibles = [
-        f for f in os.listdir(CARPETA_BASES)
-        if f.endswith(".xlsx")
-    ]
+    # -------------------------
+    # LISTAR BASES SEGÚN ROL
+    # -------------------------
 
-    if not bases_disponibles:
-        st.warning("⚠️ No hay bases cargadas aún")
-        st.stop()
+    if rol_actual == "admin":
 
-    base_seleccionada = st.sidebar.selectbox("Seleccionar base", bases_disponibles)
-    ARCHIVO = os.path.join(CARPETA_BASES, base_seleccionada)
+        bases_disponibles = []
 
-    # =========================
-    # CARGAR DATOS CORREGIDO
-    # =========================
+        for usuario in os.listdir(CARPETA_BASES):
+            ruta_user = os.path.join(CARPETA_BASES, usuario)
+            for archivo in os.listdir(ruta_user):
+                if archivo.endswith(".xlsx"):
+                    bases_disponibles.append(
+                        (f"{usuario} - {archivo}", os.path.join(ruta_user, archivo))
+                    )
 
-    @st.cache_data
-    def cargar_datos(archivo):
-
-        df = pd.read_excel(archivo)
-        df.columns = df.columns.str.strip()
-
-        # Detectar columna fecha automáticamente
-        columnas_lower = {col.lower(): col for col in df.columns}
-
-        posibles_fechas = [
-            "fecha_renovacion",
-            "fecha",
-            "vencimiento",
-            "fecha vencimiento",
-            "fecca"
-        ]
-
-        columna_fecha_real = None
-
-        for posible in posibles_fechas:
-            if posible in columnas_lower:
-                columna_fecha_real = columnas_lower[posible]
-                break
-
-        if columna_fecha_real is None:
-            st.error("❌ No se encontró columna de fecha en la base.")
-            st.write("Columnas detectadas:", list(df.columns))
+        if not bases_disponibles:
+            st.warning("⚠️ No hay bases cargadas")
             st.stop()
 
-        df.rename(columns={columna_fecha_real: "Fecha_Renovacion"}, inplace=True)
+        nombres = [x[0] for x in bases_disponibles]
+        seleccion = st.sidebar.selectbox("Seleccionar base", nombres)
+        ARCHIVO = dict(bases_disponibles)[seleccion]
 
-        df["Fecha_Renovacion"] = pd.to_datetime(
-            df["Fecha_Renovacion"],
-            errors="coerce",
-            dayfirst=True
-        )
+    else:
 
-        df = df[df["Fecha_Renovacion"].notna()]
+        bases_disponibles = [
+            f for f in os.listdir(carpeta_usuario)
+            if f.endswith(".xlsx")
+        ]
 
-        if "Estado" not in df.columns:
-            df["Estado"] = "Pendiente"
+        if not bases_disponibles:
+            st.warning("⚠️ No tienes bases cargadas")
+            st.stop()
 
-        return df
-
-    df = cargar_datos(ARCHIVO)
+        seleccion = st.sidebar.selectbox("Seleccionar base", bases_disponibles)
+        ARCHIVO = os.path.join(carpeta_usuario, seleccion)
 
     # =========================
-    # FILTROS
+    # CARGAR DATOS
     # =========================
 
-    st.markdown("## 🔎 Filtros")
+    df = pd.read_excel(ARCHIVO)
+    df.columns = df.columns.str.strip()
 
-    col1, col2 = st.columns(2)
+    # Detectar columna fecha automáticamente
+    columnas_lower = {col.lower(): col for col in df.columns}
 
-    fecha_inicio = col1.date_input(
-        "Desde",
-        df["Fecha_Renovacion"].min().date()
-    )
-
-    fecha_fin = col2.date_input(
-        "Hasta",
-        df["Fecha_Renovacion"].max().date()
-    )
-
-    df_filtrado = df[
-        (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
-        (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
+    posibles_fechas = [
+        "fecha_renovacion",
+        "fecha",
+        "vencimiento",
+        "fecha vencimiento",
+        "fecca"
     ]
+
+    columna_fecha_real = None
+
+    for posible in posibles_fechas:
+        if posible in columnas_lower:
+            columna_fecha_real = columnas_lower[posible]
+            break
+
+    if columna_fecha_real is None:
+        st.error("❌ No se encontró columna de fecha.")
+        st.write("Columnas detectadas:", list(df.columns))
+        st.stop()
+
+    df.rename(columns={columna_fecha_real: "Fecha_Renovacion"}, inplace=True)
+
+    df["Fecha_Renovacion"] = pd.to_datetime(
+        df["Fecha_Renovacion"],
+        errors="coerce",
+        dayfirst=True
+    )
+
+    df = df[df["Fecha_Renovacion"].notna()]
+
+    if "Estado" not in df.columns:
+        df["Estado"] = "Pendiente"
 
     # =========================
     # DASHBOARD
@@ -198,10 +206,10 @@ with tab1:
 
     c1, c2, c3, c4 = st.columns(4)
 
-    c1.metric("Total", len(df_filtrado))
-    c2.metric("Pendientes", (df_filtrado["Estado"]=="Pendiente").sum())
-    c3.metric("Agendados", (df_filtrado["Estado"]=="Agendado").sum())
-    c4.metric("Renovados", (df_filtrado["Estado"]=="Renovado").sum())
+    c1.metric("Total", len(df))
+    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
+    c3.metric("Agendados", (df["Estado"]=="Agendado").sum())
+    c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
 
     st.divider()
 
@@ -237,7 +245,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
     estados = ["Pendiente","Agendado","Renovado"]
 
-    for i,row in df_filtrado.iterrows():
+    for i,row in df.iterrows():
 
         col1,col2,col3,col4 = st.columns(4)
 
@@ -276,7 +284,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 # =================== PANEL ADMIN ==========================
 # ==========================================================
 
-if st.session_state.rol == "admin":
+if rol_actual == "admin":
 
     with tab2:
 
@@ -296,6 +304,7 @@ if st.session_state.rol == "admin":
                     "rol": "asesor"
                 }
                 guardar_usuarios(usuarios)
+                os.makedirs(os.path.join(CARPETA_BASES, nuevo_user), exist_ok=True)
                 st.success("Usuario creado correctamente ✅")
                 st.rerun()
 
@@ -305,5 +314,6 @@ if st.session_state.rol == "admin":
 
         for user in usuarios.keys():
             st.write(user)
+
 
 
