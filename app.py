@@ -157,6 +157,24 @@ with tab_crm:
     seleccion = st.sidebar.selectbox("Seleccionar base", nombres)
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
+    # ==================================================
+    # ELIMINAR BASE
+    # ==================================================
+    st.sidebar.divider()
+    st.sidebar.subheader("🗑 Eliminar Base de Datos")
+
+    if st.sidebar.button("Eliminar base seleccionada"):
+        try:
+            os.remove(ARCHIVO)
+            st.sidebar.success("Base eliminada correctamente")
+            st.rerun()
+        except Exception:
+            st.sidebar.error("Error al eliminar la base")
+
+    # ==================================================
+    # CARGAR DATA
+    # ==================================================
+
     df = pd.read_excel(ARCHIVO)
     df.columns = df.columns.str.strip()
 
@@ -211,6 +229,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
         if "Telefono" in df.columns:
 
+            # Botón WhatsApp verde
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
@@ -239,6 +258,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
                     unsafe_allow_html=True
                 )
 
+            # Botón Llamar azul
             telefono = str(row.get("Telefono","")).replace(".0","").replace(" ","").replace("-","")
 
             if telefono:
@@ -266,5 +286,8 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
                     """,
                     unsafe_allow_html=True
                 )
+
+        st.divider()
+
 
         st.divider()
