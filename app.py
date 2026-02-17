@@ -256,7 +256,7 @@ with tab_crm:
     st.divider()
 
     # ==================================================
-    # WHATSAPP Y LLAMADAS
+    # WHATSAPP
     # ==================================================
 
     def link_whatsapp(nombre, placa, telefono, fecha):
@@ -311,7 +311,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
-                row["Telefono",""],
+                row.get("Telefono",""),
                 row["Fecha_Renovacion"]
             )
 
@@ -386,12 +386,9 @@ if rol_actual == "admin":
 
         for user,datos in usuarios.items():
 
-            col1,col2,col3 = st.columns([3,1,1])
+            col1,col2,col3 = st.columns([3,2,1])
             col1.write(f"👤 {user} ({datos['rol']})")
-
-            # 🔑 Expander para ver la contraseña
-            with col2.expander("🔑 Ver contraseña"):
-                st.code(datos["password"], language="text")
+            col2.write(f"🔑 {datos['password']}")  # ✅ Mostrar contraseña
 
             if user != "admin":
                 if col3.button("🗑 Eliminar", key=f"del_{user}"):
