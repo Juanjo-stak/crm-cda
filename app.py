@@ -315,6 +315,29 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
             )
             if url:
                 col4.link_button("📲 WhatsApp", url)
+        # ==================================================
+        # 📞 BOTÓN LLAMAR (AGREGADO)
+        # ==================================================
+
+        if "Telefono" in df.columns:
+
+            telefono = str(row.get("Telefono","")).replace(".0","").replace(" ","").replace("-","")
+
+            if telefono:
+
+                # Agrega código país si no lo tiene (Colombia +57)
+                if not telefono.startswith("57"):
+                    telefono = "57" + telefono
+
+                link_llamada = f"tel:+{telefono}"
+
+                col4.markdown(
+                    f'<a href="{link_llamada}">'
+                    f'<button style="width:100%;padding:8px;'
+                    f'border-radius:8px;background-color:#1f77b4;'
+                    f'color:white;border:none;">📞 Llamar</button></a>',
+                    unsafe_allow_html=True
+                )
 
         st.divider()
 
