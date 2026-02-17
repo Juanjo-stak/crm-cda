@@ -223,7 +223,8 @@ def link_whatsapp(nombre, placa, telefono, sede, fecha):
         telefono = "57" + telefono
 
     # Formatear fecha en español
-    fecha_texto = fecha.strftime("%A %d de %B de %Y")
+   fecha_texto = fecha.strftime("%A") + f" {fecha.day} de " + fecha.strftime("%B de %Y")
+
 
     mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
