@@ -306,32 +306,35 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
             df.to_excel(ARCHIVO, index=False)
             st.rerun()
 
-        if "Telefono" in df.columns:
+               if "Telefono" in df.columns:
+
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
                 row.get("Telefono",""),
                 row["Fecha_Renovacion"]
             )
-           if url:
-    col4.markdown(
-        f"""
-        <a href="{url}" target="_blank">
-            <button style="
-                width:100%;
-                padding:10px;
-                border-radius:8px;
-                background-color:#25D366;
-                color:white;
-                font-weight:bold;
-                border:none;
-                cursor:pointer;">
-                📲 WhatsApp
-            </button>
-        </a>
-        """,
-        unsafe_allow_html=True
-    )
+
+            if url:
+                col4.markdown(
+                    f"""
+                    <a href="{url}" target="_blank">
+                        <button style="
+                            width:100%;
+                            padding:10px;
+                            border-radius:8px;
+                            background-color:#25D366;
+                            color:white;
+                            font-weight:bold;
+                            border:none;
+                            cursor:pointer;">
+                            📲 WhatsApp
+                        </button>
+                    </a>
+                    """,
+                    unsafe_allow_html=True
+                )
+
 
 
 
