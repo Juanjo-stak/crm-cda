@@ -140,6 +140,25 @@ with tab_crm:
     seleccion = st.sidebar.selectbox("Seleccionar base", nombres)
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
+    # ==================================================
+    # 🔴 AGREGADO: ELIMINAR BASE
+    # ==================================================
+
+    st.sidebar.divider()
+    st.sidebar.subheader("🗑 Eliminar Base de Datos")
+
+    if st.sidebar.button("Eliminar base seleccionada"):
+        try:
+            os.remove(ARCHIVO)
+            st.sidebar.success("Base eliminada correctamente")
+            st.rerun()
+        except Exception:
+            st.sidebar.error("Error al eliminar la base")
+
+    # ==================================================
+    # CARGAR DATA
+    # ==================================================
+
     df = pd.read_excel(ARCHIVO)
     df.columns = df.columns.str.strip()
 
@@ -259,8 +278,6 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
         col1.write(row.get("Cliente",""))
 
         col2.write(row["Fecha_Renovacion"].date())
-
-        # 🔥 MODIFICACIÓN AQUÍ (INTERACCIÓN DASHBOARD)
 
         estado_actual = row["Estado"]
 
