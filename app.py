@@ -4,7 +4,7 @@ import urllib.parse
 import os
 import json
 import shutil
-import plotly.express as px
+import plotly.express as px  # Asegúrate de tener plotly instalado
 
 # ======================================================
 # CONFIGURACIÓN
@@ -111,10 +111,18 @@ os.makedirs(carpeta_usuario, exist_ok=True)
 # TABS
 # ======================================================
 
+tabs_lista = ["📊 CRM"]
 if rol_actual == "admin":
-    tab_crm, tab_admin = st.tabs(["📊 CRM", "👑 Panel Administración"])
-else:
-    tab_crm = st.tabs(["📊 CRM"])[0]
+    tabs_lista.append("👑 Panel Administración")
+    tabs_lista.append("📈 Dashboard Visual")  # Nueva pestaña de gráficos
+
+tabs_objs = st.tabs(tabs_lista)
+
+# Asignar objetos a variables según rol
+tab_crm = tabs_objs[0]
+if rol_actual == "admin":
+    tab_admin = tabs_objs[1]
+    tab_dashboard = tabs_objs[2]
 
 # ======================================================
 # ====================== CRM ===========================
@@ -221,30 +229,6 @@ with tab_crm:
     c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
 
     st.divider()
-
-    # ==================================================
-    # DASHBOARD GRÁFICO EXTRA
-    # ==================================================
-    st.markdown("## 📈 Dashboard Visual de Estados")
-
-    conteo_estados = df["Estado"].value_counts().reindex(["Pendiente","Agendado","Renovado"], fill_value=0)
-
-    # Gráfico de barras
-    st.bar_chart(conteo_estados)
-
-    # Gráfico de pastel
-    fig = px.pie(
-        names=conteo_estados.index,
-        values=conteo_estados.values,
-        title="Proporción de Estados",
-        color=conteo_estados.index,
-        color_discrete_map={
-            "Pendiente":"red",
-            "Agendado":"yellow",
-            "Renovado":"green"
-        }
-    )
-    st.plotly_chart(fig, use_container_width=True)
 
     # ==================================================
     # FILTROS
@@ -424,4 +408,40 @@ if rol_actual == "admin":
                         shutil.rmtree(carpeta_eliminar)
                     st.success("Usuario eliminado")
                     st.rerun()
+
+# ======================================================
+# TAB DASHBOARD VISUAL (SOLO ADMIN)
+# ======================================================
+
+if rol_actual == "admin":
+
+    with tab_dashboard:
+
+        st.header("📈 Dashboard Visual de Estados")
+
+        if not bases_disponibles:
+            st.warning("No hay bases cargadas")
+        else:
+            # Contar estados
+            conteo_estados = df["Estado"].value_counts().reindex(["Pendiente","Agendado","Renovado"], fill_value=0)
+
+            # Gráfico de barras
+            st.subheader("Gráfico de barras de Estados")
+            st.bar_chart(conteo_estados)
+
+            # Gráfico de pastel
+            st.subheader("Gráfico de pastel de Estados")
+            fig = px.pie(
+                names=conteo_estados.index,
+                values=conteo_estados.values,
+                title="Proporción de Estados",
+                color=conteo_estados.index,
+                color_discrete_map={
+                    "Pendiente":"red",
+                    "Agendado":"yellow",
+                    "Renovado":"green"
+                }
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
 
