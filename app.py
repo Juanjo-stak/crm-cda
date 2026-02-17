@@ -206,7 +206,7 @@ def link_whatsapp(nombre, placa, telefono, sede, fecha):
     if not telefono.startswith("57"):
         telefono = "57" + telefono
 
-    fecha_texto = fecha.strftime("%d de %mes de %año")
+  fecha_texto = fecha.strftime("%A %d de %B de %Y")
 
     mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
