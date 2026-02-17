@@ -206,6 +206,17 @@ with tab_crm:
     # ==================================================
     # DASHBOARD
     # ==================================================
+
+
+    st.markdown("## 📊 Dashboard")
+
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("Total", len(df_filtrado))
+    c2.metric("Pendientes", (df_filtrado["Estado"]=="Pendiente").sum())
+    c3.metric("Agendados", (df_filtrado["Estado"]=="Agendado").sum())
+    c4.metric("Renovados", (df_filtrado["Estado"]=="Renovado").sum())
+
+    st.divider()
 # =========================
 # FILTROS
 # =========================
@@ -253,17 +264,6 @@ df_filtrado = df[
 
 if sede_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
-
-    st.markdown("## 📊 Dashboard")
-
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Total", len(df_filtrado))
-    c2.metric("Pendientes", (df_filtrado["Estado"]=="Pendiente").sum())
-    c3.metric("Agendados", (df_filtrado["Estado"]=="Agendado").sum())
-    c4.metric("Renovados", (df_filtrado["Estado"]=="Renovado").sum())
-
-    st.divider()
-
     # ==================================================
     # WHATSAPP
     # ==================================================
