@@ -174,10 +174,10 @@ with tab_crm:
     df.columns = df.columns.str.strip()
 
     if "Fecha_Renovacion" not in df.columns:
-        st.error("La base debe tener columna 'Fecha_Renovacion'")
+        st.error("La base debe tener columna 'Fecha'")
         st.stop()
 
-    df["Fecha_Renovacion"] = pd.to_datetime(df["Fecha_Renovacion"], errors="coerce")
+    df["Fecha_Renovacion"] = pd.to_datetime(df["Fecha"], errors="coerce")
     df = df[df["Fecha_Renovacion"].notna()]
 
     if "Estado" not in df.columns:
