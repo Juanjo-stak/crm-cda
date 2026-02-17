@@ -83,11 +83,11 @@ if not st.session_state.login:
 usuario_actual = st.session_state.usuario
 rol_actual = st.session_state.rol
 
-st.title("  Renovaciones ")
+st.title("🚗 CRM Renovaciones CDA")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
 # ======================================================
-# CERRAR SESIÓN
+# 🔴 AGREGADO: CERRAR SESIÓN
 # ======================================================
 
 col_logout1, col_logout2 = st.columns([6,1])
@@ -158,8 +158,9 @@ with tab_crm:
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
     # ==================================================
-    # ELIMINAR BASE
+    # ELIMINAR BASE (YA AGREGADO ANTES)
     # ==================================================
+
     st.sidebar.divider()
     st.sidebar.subheader("🗑 Eliminar Base de Datos")
 
@@ -178,10 +179,88 @@ with tab_crm:
     df = pd.read_excel(ARCHIVO)
     df.columns = df.columns.str.strip()
 
+    columnas_lower = {col.lower(): col for col in df.columns}
+    posibles_fechas = ["fecha_renovacion","fecha","vencimiento","fecha vencimiento"]
+
+    columna_fecha = None
+    for posible in posibles_fechas:
+        if posible in columnas_lower:
+            columna_fecha = columnas_lower[posible]
+            break
+
+    if columna_fecha is None:
+        st.error("No se encontró columna de fecha")
+        st.write("Columnas detectadas:", list(df.columns))
+        st.stop()
+
+    df.rename(columns={columna_fecha: "Fecha_Renovacion"}, inplace=True)
+
+    df["Fecha_Renovacion"] = pd.to_datetime(
+        df["Fecha_Renovacion"],
+        errors="coerce",
+        dayfirst=True
+    )
+
+    df = df[df["Fecha_Renovacion"].notna()]
+
     if "Estado" not in df.columns:
         df["Estado"] = "Pendiente"
 
+    # ==================================================
+    # DASHBOARD
+    # ==================================================
+
+    st.markdown("## 📊 Dashboard")
+
+    c1,c2,c3,c4 = st.columns(4)
+
+    c1.metric("Total", len(df))
+    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
+    c3.metric("Agendados", (df["Estado"]=="Agendado").sum())
+    c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
+
+    st.divider()
+
+    # ==================================================
+    # FILTROS
+    # ==================================================
+
+    st.markdown("## 🔎 Filtros")
+
+    col_f1, col_f2, col_f3 = st.columns(3)
+
+    if "Sede" not in df.columns:
+        df["Sede"] = "Sin sede"
+
+    fecha_min = df["Fecha_Renovacion"].min()
+    fecha_max = df["Fecha_Renovacion"].max()
+
+    with col_f1:
+        fecha_inicio = st.date_input("Desde", fecha_min.date())
+
+    with col_f2:
+        fecha_fin = st.date_input("Hasta", fecha_max.date())
+
+    with col_f3:
+        sedes = ["Todas"] + sorted(df["Sede"].dropna().astype(str).unique().tolist())
+        sede_sel = st.selectbox("Sede", sedes)
+
+    df_filtrado = df[
+        (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
+        (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
+    ]
+
+    if sede_sel != "Todas":
+        df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
+
+    st.divider()
+
+    # ==================================================
+    # WHATSAPP
+    # ==================================================
+
     def link_whatsapp(nombre, placa, telefono, fecha):
+
         if pd.isna(telefono):
             return None
 
@@ -204,14 +283,14 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
     estados = ["Pendiente","Agendado","Renovado"]
 
-    for i,row in df.iterrows():
+    for i,row in df_filtrado.iterrows():
 
         col1,col2,col3,col4 = st.columns(4)
 
         col1.write(f"**{row.get('Placa','')}**")
         col1.write(row.get("Cliente",""))
 
-        col2.write(row["Fecha_Renovacion"])
+        col2.write(row["Fecha_Renovacion"].date())
 
         estado_actual = row["Estado"]
 
@@ -228,66 +307,64 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
             st.rerun()
 
         if "Telefono" in df.columns:
-
-            # Botón WhatsApp verde
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
                 row.get("Telefono",""),
                 row["Fecha_Renovacion"]
             )
-
             if url:
-                col4.markdown(
-                    f"""
-                    <a href="{url}" target="_blank">
-                        <button style="
-                            width:100%;
-                            padding:10px;
-                            border-radius:8px;
-                            background-color:#25D366;
-                            color:white;
-                            font-weight:bold;
-                            border:none;
-                            cursor:pointer;
-                            margin-bottom:5px;">
-                            📲 WhatsApp
-                        </button>
-                    </a>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-            # Botón Llamar azul
-            telefono = str(row.get("Telefono","")).replace(".0","").replace(" ","").replace("-","")
-
-            if telefono:
-
-                if not telefono.startswith("57"):
-                    telefono = "57" + telefono
-
-                link_llamada = f"tel:+{telefono}"
-
-                col4.markdown(
-                    f"""
-                    <a href="{link_llamada}">
-                        <button style="
-                            width:100%;
-                            padding:10px;
-                            border-radius:8px;
-                            background-color:#1f77b4;
-                            color:white;
-                            font-weight:bold;
-                            border:none;
-                            cursor:pointer;">
-                            📞 Llamar
-                        </button>
-                    </a>
-                    """,
-                    unsafe_allow_html=True
-                )
+                col4.link_button("📲 WhatsApp", url)
 
         st.divider()
+
+# ======================================================
+# PANEL ADMIN
+# ======================================================
+
+if rol_actual == "admin":
+
+    with tab_admin:
+
+        st.header("👑 Panel Administración")
+
+        usuarios = cargar_usuarios()
+
+        nuevo_user = st.text_input("Nuevo usuario")
+        nueva_pass = st.text_input("Contraseña", type="password")
+
+        if st.button("Crear Usuario"):
+            if nuevo_user in usuarios:
+                st.error("El usuario ya existe")
+            elif nuevo_user.strip()=="" or nueva_pass.strip()=="":
+                st.error("Campos vacíos")
+            else:
+                usuarios[nuevo_user] = {
+                    "password": nueva_pass,
+                    "rol": "usuario"
+                }
+                guardar_usuarios(usuarios)
+                os.makedirs(os.path.join(CARPETA_BASES,nuevo_user),exist_ok=True)
+                st.success("Usuario creado correctamente")
+                st.rerun()
+
+        st.divider()
+        st.subheader("Usuarios registrados")
+
+        for user,datos in usuarios.items():
+
+            col1,col2 = st.columns([3,1])
+            col1.write(f"👤 {user} ({datos['rol']})")
+
+            if user != "admin":
+                if col2.button("🗑 Eliminar", key=f"del_{user}"):
+                    del usuarios[user]
+                    guardar_usuarios(usuarios)
+                    carpeta_eliminar = os.path.join(CARPETA_BASES,user)
+                    if os.path.exists(carpeta_eliminar):
+                        shutil.rmtree(carpeta_eliminar)
+                    st.success("Usuario eliminado")
+                    st.rerun()
 
 
         st.divider()
