@@ -158,20 +158,6 @@ with tab1:
         return df
 
     df = cargar_datos(ARCHIVO)
-
-    # -------------------------
-    # DASHBOARD
-    # -------------------------
-
-    st.markdown("## 📊 Dashboard")
-
-    c1,c2,c3,c4,c5 = st.columns(5)
-
-    c1.metric("Total", len(df))
-    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
-    c3.metric("Contactados", (df["Estado"]=="Contactado").sum())
-    c4.metric("Agendados", (df["Estado"]=="Agendado").sum())
-    c5.metric("Renovados", (df["Estado"]=="Renovado").sum())
 # =========================
 # FILTROS
 # =========================
@@ -198,6 +184,20 @@ df_filtrado = df[
 
 if sede_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
+    # -------------------------
+    # DASHBOARD
+    # -------------------------
+
+    st.markdown("## 📊 Dashboard")
+
+    c1,c2,c3,c4,c5 = st.columns(5)
+
+    c1.metric("Total", len(df))
+    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
+    c3.metric("Contactados", (df["Estado"]=="Contactado").sum())
+    c4.metric("Agendados", (df["Estado"]=="Agendado").sum())
+    c5.metric("Renovados", (df["Estado"]=="Renovado").sum())
+
     # -------------------------
     # FUNCIÓN WHATSAPP
     # -------------------------
