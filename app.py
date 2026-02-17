@@ -200,13 +200,30 @@ if sede_sel != "Todas":
 # =========================
 # WHATSAPP
 # =========================
+
+import urllib.parse
+import locale
+from datetime import datetime
+
+# Configurar idioma español (ajusta según tu sistema)
+try:
+    locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+except:
+    try:
+        locale.setlocale(locale.LC_TIME, 'Spanish_Spain')
+    except:
+        pass  # Si falla, seguirá en el idioma por defecto
+
+
 def link_whatsapp(nombre, placa, telefono, sede, fecha):
 
-    telefono = str(telefono).replace(".0","").replace(" ","")
+    # Limpiar teléfono
+    telefono = str(telefono).replace(".0", "").replace(" ", "")
     if not telefono.startswith("57"):
         telefono = "57" + telefono
 
-  fecha_texto = fecha.strftime("%A %d de %B de %Y")
+    # Formatear fecha en español
+    fecha_texto = fecha.strftime("%A %d de %B de %Y")
 
     mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
