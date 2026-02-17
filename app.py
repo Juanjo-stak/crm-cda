@@ -5,19 +5,20 @@ import json
 import urllib.parse
 from datetime import datetime
 
-# =========================
-# CONFIG
-# =========================
-
 st.set_page_config(page_title="CRM CDA Occidente", layout="wide")
 
-CARPETA_USUARIOS = "crm_usuarios"
-ARCHIVO_USUARIOS = "usuarios.json"
+# =========================
+# CONFIGURACIÓN
+# =========================
+
+CARPETA_RAIZ = "crm_data"
+CARPETA_USUARIOS = os.path.join(CARPETA_RAIZ, "usuarios")
+ARCHIVO_USUARIOS = os.path.join(CARPETA_RAIZ, "usuarios.json")
 
 os.makedirs(CARPETA_USUARIOS, exist_ok=True)
 
 # =========================
-# CREAR ADMIN SI NO EXISTE
+# CREAR ARCHIVO USUARIOS SI NO EXISTE
 # =========================
 
 if not os.path.exists(ARCHIVO_USUARIOS):
@@ -28,16 +29,22 @@ if not os.path.exists(ARCHIVO_USUARIOS):
         }
     }
     with open(ARCHIVO_USUARIOS, "w") as f:
-        json.dump(usuarios_inicial, f)
+        json.dump(usuarios_inicial, f, indent=4)
 
-with open(ARCHIVO_USUARIOS, "r") as f:
-    usuarios = json.load(f)
+# Cargar usuarios seguro
+try:
+    with open(ARCHIVO_USUARIOS, "r") as f:
+        usuarios = json.load(f)
+except:
+    st.error("El archivo usuarios.json está corrupto. Elimínalo y reinicia.")
+    st.stop()
 
 # =========================
 # LOGIN
 # =========================
 
 if "usuario" not in st.session_state:
+
     st.title("🔐 Login CRM")
 
     user = st.text_input("Usuario")
@@ -57,21 +64,22 @@ usuario_actual = st.session_state.usuario
 rol_actual = st.session_state.rol
 
 # =========================
-# CREAR CARPETA DEL USUARIO
+# CREAR CARPETA USUARIO
 # =========================
 
 carpeta_usuario = os.path.join(CARPETA_USUARIOS, usuario_actual)
-carpeta_bases = os.path.join(carpeta_usuario, "bases")
+carpeta_bases_usuario = os.path.join(carpeta_usuario, "bases")
 
-os.makedirs(carpeta_bases, exist_ok=True)
+os.makedirs(carpeta_bases_usuario, exist_ok=True)
 
 # =========================
-# FUNCION WHATSAPP
+# FUNCIÓN WHATSAPP
 # =========================
 
 def link_whatsapp(nombre, placa, telefono, sede, fecha):
 
-    telefono = str(telefono).replace(".0","").replace(" ","")
+    telefono = str(telefono).replace(".0", "").replace(" ", "")
+
     if not telefono.startswith("57"):
         telefono = "57" + telefono
 
@@ -94,68 +102,82 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 # =========================
 
 if rol_actual == "admin":
-    tab1, tab2 = st.tabs(["📊 CRM", "👥 Administración"])
+    tab_crm, tab_admin = st.tabs(["📊 CRM", "👥 Administración"])
 else:
-    tab1 = st.tabs(["📊 CRM"])[0]
+    tab_crm = st.tabs(["📊 CRM"])[0]
 
 # =========================
-# CRM TAB
+# CRM
 # =========================
 
-with tab1:
+with tab_crm:
 
-    st.title(f"Bienvenido {usuario_actual}")
+    st.title(f"📊 CRM - {usuario_actual}")
 
-    st.sidebar.header("📂 Bases")
+    st.sidebar.header("📂 Bases de datos")
 
-    archivo = st.sidebar.file_uploader("Subir base", type=["xlsx"])
+    archivo_subido = st.sidebar.file_uploader("Subir base", type=["xlsx"])
 
-    if archivo:
-        ruta = os.path.join(carpeta_bases, archivo.name)
-        with open(ruta, "wb") as f:
-            f.write(archivo.getbuffer())
-        st.success("Base guardada")
+    if archivo_subido:
+        ruta_guardado = os.path.join(carpeta_bases_usuario, archivo_subido.name)
+        with open(ruta_guardado, "wb") as f:
+            f.write(archivo_subido.getbuffer())
+        st.success("Base guardada correctamente")
         st.rerun()
 
-    # ADMIN puede ver TODAS las bases
+    # =========================
+    # SELECCIÓN BASES
+    # =========================
+
     if rol_actual == "admin":
-        todas_bases = []
-        for carpeta in os.listdir(CARPETA_USUARIOS):
-            ruta_bases = os.path.join(CARPETA_USUARIOS, carpeta, "bases")
+
+        lista_bases = []
+
+        for user_folder in os.listdir(CARPETA_USUARIOS):
+            ruta_bases = os.path.join(CARPETA_USUARIOS, user_folder, "bases")
             if os.path.exists(ruta_bases):
                 for archivo in os.listdir(ruta_bases):
                     if archivo.endswith(".xlsx"):
-                        todas_bases.append(
-                            (archivo, os.path.join(ruta_bases, archivo))
-                        )
+                        nombre_visible = f"{user_folder} - {archivo}"
+                        lista_bases.append((nombre_visible, os.path.join(ruta_bases, archivo)))
 
-        nombres = [b[0] for b in todas_bases]
+        if not lista_bases:
+            st.warning("No hay bases disponibles")
+            st.stop()
+
+        nombres = [x[0] for x in lista_bases]
         seleccion = st.sidebar.selectbox("Seleccionar base", nombres)
 
-        ruta_base = dict(todas_bases)[seleccion]
+        ruta_base = dict(lista_bases)[seleccion]
 
     else:
-        bases = [f for f in os.listdir(carpeta_bases) if f.endswith(".xlsx")]
 
-        if not bases:
+        bases_usuario = [f for f in os.listdir(carpeta_bases_usuario) if f.endswith(".xlsx")]
+
+        if not bases_usuario:
             st.warning("No tienes bases cargadas")
             st.stop()
 
-        seleccion = st.sidebar.selectbox("Seleccionar base", bases)
-        ruta_base = os.path.join(carpeta_bases, seleccion)
+        seleccion = st.sidebar.selectbox("Seleccionar base", bases_usuario)
+        ruta_base = os.path.join(carpeta_bases_usuario, seleccion)
 
     # =========================
-    # CARGAR DATOS
+    # CARGAR BASE SEGURO
     # =========================
 
-    df = pd.read_excel(ruta_base)
+    try:
+        df = pd.read_excel(ruta_base)
+    except:
+        st.error("Error leyendo la base. Puede estar dañada.")
+        st.stop()
+
     df.columns = df.columns.str.strip()
 
-    df["Fecha_Renovacion"] = pd.to_datetime(
-        df["Fecha_Renovacion"],
-        errors="coerce"
-    )
+    if "Fecha_Renovacion" not in df.columns:
+        st.error("La base debe tener columna 'Fecha_Renovacion'")
+        st.stop()
 
+    df["Fecha_Renovacion"] = pd.to_datetime(df["Fecha_Renovacion"], errors="coerce")
     df = df[df["Fecha_Renovacion"].notna()]
 
     if "Estado" not in df.columns:
@@ -165,7 +187,7 @@ with tab1:
     # DASHBOARD
     # =========================
 
-    c1,c2,c3,c4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns(4)
 
     c1.metric("Total", len(df))
     c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
@@ -178,15 +200,15 @@ with tab1:
     # LISTADO
     # =========================
 
-    for i,row in df.iterrows():
+    for i, row in df.iterrows():
 
-        col1,col2,col3,col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns(4)
 
-        col1.write(f"**{row['Placa']}**")
-        col1.write(row["Cliente"])
+        col1.write(f"**{row.get('Placa','')}**")
+        col1.write(row.get("Cliente",""))
 
         col2.write(row["Fecha_Renovacion"].date())
-        col2.write(row["Sede"])
+        col2.write(row.get("Sede",""))
 
         estado = col3.selectbox(
             "Estado",
@@ -197,51 +219,54 @@ with tab1:
 
         df.loc[i,"Estado"] = estado
 
-        url = link_whatsapp(
-            row["Cliente"],
-            row["Placa"],
-            row["Telefono"],
-            row["Sede"],
-            row["Fecha_Renovacion"]
-        )
-
-        col4.link_button("📲 WhatsApp", url)
+        if "Telefono" in df.columns:
+            url = link_whatsapp(
+                row.get("Cliente",""),
+                row.get("Placa",""),
+                row.get("Telefono",""),
+                row.get("Sede",""),
+                row["Fecha_Renovacion"]
+            )
+            col4.link_button("📲 WhatsApp", url)
 
         st.divider()
 
-    if st.button("💾 Guardar"):
+    if st.button("💾 Guardar cambios"):
         df.to_excel(ruta_base, index=False)
-        st.success("Cambios guardados")
+        st.success("Cambios guardados correctamente")
 
 # =========================
-# ADMIN TAB
+# ADMIN
 # =========================
 
 if rol_actual == "admin":
 
-    with tab2:
+    with tab_admin:
 
-        st.title("Panel de Administración")
+        st.title("👥 Panel Administración")
 
-        nuevo_user = st.text_input("Nuevo usuario")
+        nuevo_usuario = st.text_input("Nuevo usuario")
         nueva_pass = st.text_input("Contraseña", type="password")
 
         if st.button("Crear usuario"):
 
-            if nuevo_user in usuarios:
-                st.error("Ya existe")
+            if nuevo_usuario in usuarios:
+                st.error("El usuario ya existe")
             else:
-                usuarios[nuevo_user] = {
+                usuarios[nuevo_usuario] = {
                     "password": nueva_pass,
                     "rol": "usuario"
                 }
 
                 with open(ARCHIVO_USUARIOS, "w") as f:
-                    json.dump(usuarios, f)
+                    json.dump(usuarios, f, indent=4)
 
                 os.makedirs(
-                    os.path.join(CARPETA_USUARIOS, nuevo_user, "bases"),
+                    os.path.join(CARPETA_USUARIOS, nuevo_usuario, "bases"),
                     exist_ok=True
                 )
+
+                st.success("Usuario creado correctamente")
+                st.rerun()
 
                 st.success("Usuario creado")
