@@ -314,20 +314,25 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
                 row["Fecha_Renovacion"]
             )
             if url:
-                col4.link_button("📲 WhatsApp", url)
-                if url:
     col4.markdown(
-        f'<a href="{url}" target="_blank">'
-        f'<button style="width:100%;padding:8px;'
-        f'border-radius:8px;'
-        f'background-color:#25D366;'
-        f'color:white;'
-        f'font-weight:bold;'
-        f'border:none;">'
-        f'📲 WhatsApp'
-        f'</button></a>',
+        f"""
+        <a href="{url}" target="_blank">
+            <button style="
+                width:100%;
+                padding:10px;
+                border-radius:8px;
+                background-color:#25D366;
+                color:white;
+                font-weight:bold;
+                border:none;
+                cursor:pointer;">
+                📲 WhatsApp
+            </button>
+        </a>
+        """,
         unsafe_allow_html=True
     )
+
 
         # ==================================================
         # 📞 BOTÓN LLAMAR (AGREGADO)
