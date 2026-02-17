@@ -465,26 +465,5 @@ if rol_actual == "admin":
             )
             st.plotly_chart(fig_pie, use_container_width=False)
 
-            # ====== DESCARGA DE DATOS ======
-            st.subheader("💾 Descargar datos filtrados")
             
-            # CSV
-            csv = df_filtrado.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="Descargar CSV",
-                data=csv,
-                file_name='datos_filtrados.csv',
-                mime='text/csv'
-            )
-
-            # Excel
-            excel_path = "datos_filtrados.xlsx"
-            df_filtrado.to_excel(excel_path, index=False)
-            with open(excel_path, "rb") as f:
-                st.download_button(
-                    label="Descargar Excel",
-                    data=f,
-                    file_name="datos_filtrados.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
 
