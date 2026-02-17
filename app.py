@@ -3,6 +3,7 @@ import pandas as pd
 import urllib.parse
 import os
 import json
+import shutil
 
 # ======================================================
 # CONFIGURACIÓN
@@ -85,7 +86,6 @@ rol_actual = st.session_state.rol
 st.title("🚗 CRM Renovaciones CDA")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
-# Crear carpeta usuario
 carpeta_usuario = os.path.join(CARPETA_BASES, usuario_actual)
 os.makedirs(carpeta_usuario, exist_ok=True)
 
@@ -104,58 +104,36 @@ else:
 
 with tab_crm:
 
-    st.sidebar.header("📂 Mis Bases de Datos")
+    st.sidebar.header("📂 Bases de Datos")
 
-    # --------------------------------------------------
-    # SUBIR BASE (SOLO A SU CARPETA)
-    # --------------------------------------------------
-
-    archivo_subido = st.sidebar.file_uploader(
-        "Subir base Excel",
-        type=["xlsx"]
-    )
+    # SUBIR BASE
+    archivo_subido = st.sidebar.file_uploader("Subir base Excel", type=["xlsx"])
 
     if archivo_subido:
         ruta_guardado = os.path.join(carpeta_usuario, archivo_subido.name)
-
         with open(ruta_guardado, "wb") as f:
             f.write(archivo_subido.getbuffer())
-
         st.sidebar.success("Base guardada correctamente")
         st.rerun()
 
-    # --------------------------------------------------
-    # LISTAR BASES SEGÚN ROL
-    # --------------------------------------------------
-
+    # LISTAR BASES
     bases_disponibles = []
 
-    # ADMIN VE TODAS
     if rol_actual == "admin":
 
         for usuario in os.listdir(CARPETA_BASES):
-
             ruta_user = os.path.join(CARPETA_BASES, usuario)
-
             if not os.path.isdir(ruta_user):
                 continue
-
             for archivo in os.listdir(ruta_user):
-
                 ruta_archivo = os.path.join(ruta_user, archivo)
-
                 if os.path.isfile(ruta_archivo) and archivo.endswith(".xlsx"):
                     bases_disponibles.append(
                         (f"{usuario} - {archivo}", ruta_archivo)
                     )
-
-    # USUARIO NORMAL SOLO SU CARPETA
     else:
-
         for archivo in os.listdir(carpeta_usuario):
-
             ruta_archivo = os.path.join(carpeta_usuario, archivo)
-
             if os.path.isfile(ruta_archivo) and archivo.endswith(".xlsx"):
                 bases_disponibles.append((archivo, ruta_archivo))
 
@@ -164,30 +142,20 @@ with tab_crm:
         st.stop()
 
     nombres = [x[0] for x in bases_disponibles]
-
     seleccion = st.sidebar.selectbox("Seleccionar base", nombres)
-
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
     # ==================================================
-    # CARGAR EXCEL
+    # CARGAR DATA
     # ==================================================
 
     df = pd.read_excel(ARCHIVO)
     df.columns = df.columns.str.strip()
 
-    # Detectar columna fecha automáticamente
     columnas_lower = {col.lower(): col for col in df.columns}
-
-    posibles_fechas = [
-        "fecha_renovacion",
-        "fecha",
-        "vencimiento",
-        "fecha vencimiento"
-    ]
+    posibles_fechas = ["fecha_renovacion","fecha","vencimiento","fecha vencimiento"]
 
     columna_fecha = None
-
     for posible in posibles_fechas:
         if posible in columnas_lower:
             columna_fecha = columnas_lower[posible]
@@ -212,22 +180,45 @@ with tab_crm:
         df["Estado"] = "Pendiente"
 
     # ==================================================
+    # FILTROS RESTAURADOS
+    # ==================================================
+
+    st.sidebar.markdown("## 🔎 Filtros")
+
+    filtro_estado = st.sidebar.multiselect(
+        "Filtrar por estado",
+        ["Pendiente","Agendado","Renovado"],
+        default=["Pendiente","Agendado","Renovado"]
+    )
+
+    busqueda = st.sidebar.text_input("Buscar por placa o cliente")
+
+    df_filtrado = df[df["Estado"].isin(filtro_estado)]
+
+    if busqueda:
+        df_filtrado = df_filtrado[
+            df_filtrado.apply(
+                lambda row: busqueda.lower() in str(row).lower(),
+                axis=1
+            )
+        ]
+
+    # ==================================================
     # DASHBOARD
     # ==================================================
 
     st.markdown("## 📊 Dashboard")
 
-    c1, c2, c3, c4 = st.columns(4)
-
-    c1.metric("Total", len(df))
-    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
-    c3.metric("Agendados", (df["Estado"]=="Agendado").sum())
-    c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("Total", len(df_filtrado))
+    c2.metric("Pendientes", (df_filtrado["Estado"]=="Pendiente").sum())
+    c3.metric("Agendados", (df_filtrado["Estado"]=="Agendado").sum())
+    c4.metric("Renovados", (df_filtrado["Estado"]=="Renovado").sum())
 
     st.divider()
 
     # ==================================================
-    # FUNCIÓN WHATSAPP
+    # WHATSAPP
     # ==================================================
 
     def link_whatsapp(nombre, placa, telefono, fecha):
@@ -258,7 +249,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
 
     estados = ["Pendiente","Agendado","Renovado"]
 
-    for i,row in df.iterrows():
+    for i,row in df_filtrado.iterrows():
 
         col1,col2,col3,col4 = st.columns(4)
 
@@ -277,14 +268,12 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
         df.loc[i,"Estado"] = estado
 
         if "Telefono" in df.columns:
-
             url = link_whatsapp(
                 row.get("Cliente",""),
                 row.get("Placa",""),
                 row.get("Telefono",""),
                 row["Fecha_Renovacion"]
             )
-
             if url:
                 col4.link_button("📲 WhatsApp", url)
 
@@ -295,7 +284,7 @@ Tu vehículo con placa {placa} vence el {fecha_texto}.
         st.success("Cambios guardados correctamente")
 
 # ======================================================
-# ================= ADMIN ==============================
+# ================= PANEL ADMIN ========================
 # ======================================================
 
 if rol_actual == "admin":
@@ -310,34 +299,40 @@ if rol_actual == "admin":
         nueva_pass = st.text_input("Contraseña", type="password")
 
         if st.button("Crear Usuario"):
-
             if nuevo_user in usuarios:
                 st.error("El usuario ya existe")
-            elif nuevo_user.strip() == "" or nueva_pass.strip() == "":
+            elif nuevo_user.strip()=="" or nueva_pass.strip()=="":
                 st.error("Campos vacíos")
             else:
                 usuarios[nuevo_user] = {
                     "password": nueva_pass,
                     "rol": "usuario"
                 }
-
                 guardar_usuarios(usuarios)
-
-                os.makedirs(
-                    os.path.join(CARPETA_BASES, nuevo_user),
-                    exist_ok=True
-                )
-
+                os.makedirs(os.path.join(CARPETA_BASES,nuevo_user),exist_ok=True)
                 st.success("Usuario creado correctamente")
                 st.rerun()
 
         st.divider()
-
         st.subheader("Usuarios registrados")
 
-        for user, datos in usuarios.items():
-            st.write(f"• {user} ({datos['rol']})")
+        for user,datos in usuarios.items():
 
+            col1,col2 = st.columns([3,1])
 
+            col1.write(f"👤 {user} ({datos['rol']})")
+
+            if user != "admin":
+                if col2.button("🗑 Eliminar", key=f"del_{user}"):
+
+                    del usuarios[user]
+                    guardar_usuarios(usuarios)
+
+                    carpeta_eliminar = os.path.join(CARPETA_BASES,user)
+                    if os.path.exists(carpeta_eliminar):
+                        shutil.rmtree(carpeta_eliminar)
+
+                    st.success("Usuario eliminado")
+                    st.rerun()
 
 
