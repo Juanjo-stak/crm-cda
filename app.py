@@ -158,32 +158,7 @@ with tab1:
         return df
 
     df = cargar_datos(ARCHIVO)
-# =========================
-# FILTROS
-# =========================
 
-st.sidebar.header("🔎 Filtros")
-
-fecha_inicio = st.sidebar.date_input(
-    "Desde",
-    df["Fecha_Renovacion"].min().date()
-)
-
-fecha_fin = st.sidebar.date_input(
-    "Hasta",
-    df["Fecha_Renovacion"].max().date()
-)
-
-sedes = ["Todas"] + sorted(df["Sede"].dropna().unique().tolist())
-sede_sel = st.sidebar.selectbox("Sede", sedes)
-
-df_filtrado = df[
-    (df["Fecha_Renovacion"] >= pd.Timestamp(fecha_inicio)) &
-    (df["Fecha_Renovacion"] <= pd.Timestamp(fecha_fin))
-]
-
-if sede_sel != "Todas":
-    df_filtrado = df_filtrado[df_filtrado["Sede"] == sede_sel]
     # -------------------------
     # DASHBOARD
     # -------------------------
