@@ -4,8 +4,7 @@ import urllib.parse
 import os
 import json
 import shutil
-import plotly.express as px
-from io import BytesIO
+import plotly.express as px  # Para gráficos interactivos
 
 # ======================================================
 # CONFIGURACIÓN
@@ -265,6 +264,102 @@ with tab_crm:
 
     st.divider()
 
+    # ==================================================
+    # WHATSAPP & LLAMAR
+    # ==================================================
+
+    def link_whatsapp(nombre, placa, telefono, fecha):
+
+        if pd.isna(telefono):
+            return None
+
+        telefono = str(telefono).replace(".0","").replace(" ","").replace("-","")
+
+        if not telefono.startswith("57"):
+            telefono = "57" + telefono
+
+        fecha_texto = fecha.strftime("%d/%m/%Y")
+
+        mensaje = f"""Hola {nombre}, soy Juan José 👋
+
+Tu vehículo con placa {placa} vence el {fecha_texto}.
+
+¿Deseas agendar tu revisión? 🚗✅"""
+
+        mensaje = urllib.parse.quote(mensaje)
+
+        return f"https://wa.me/{telefono}?text={mensaje}"
+
+    estados = ["Pendiente","Agendado","Renovado"]
+
+    for i,row in df_filtrado.iterrows():
+
+        col1,col2,col3,col4 = st.columns(4)
+
+        col1.write(f"**{row.get('Placa','')}**")
+        col1.write(row.get("Cliente",""))
+
+        col2.write(row["Fecha_Renovacion"].date())
+
+        estado_actual = row["Estado"]
+
+        estado = col3.selectbox(
+            "Estado",
+            estados,
+            index=estados.index(estado_actual),
+            key=f"estado_{i}"
+        )
+
+        if estado != estado_actual:
+            df.loc[i,"Estado"] = estado
+            df.to_excel(ARCHIVO, index=False)
+            st.rerun()
+
+        if "Telefono" in df.columns:
+
+            url = link_whatsapp(
+                row.get("Cliente",""),
+                row.get("Placa",""),
+                row.get("Telefono",""),
+                row["Fecha_Renovacion"]
+            )
+
+            if url:
+                col4.markdown(
+                    f"""
+                    <a href="{url}" target="_blank">
+                        <button style="
+                            width:100%;
+                            padding:10px;
+                            border-radius:8px;
+                            background-color:#25D366;
+                            color:white;
+                            font-weight:bold;
+                            border:none;
+                            cursor:pointer;">
+                            📲 WhatsApp
+                        </button>
+                    </a>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            # 📞 BOTÓN LLAMAR
+            telefono = str(row.get("Telefono","")).replace(".0","").replace(" ","").replace("-","")
+            if telefono:
+                if not telefono.startswith("57"):
+                    telefono = "57" + telefono
+                link_llamada = f"tel:+{telefono}"
+                col4.markdown(
+                    f'<a href="{link_llamada}">'
+                    f'<button style="width:100%;padding:8px;'
+                    f'border-radius:8px;background-color:#1f77b4;'
+                    f'color:white;border:none;">📞 Llamar</button></a>',
+                    unsafe_allow_html=True
+                )
+
+        st.divider()
+
 # ======================================================
 # PANEL ADMIN
 # ======================================================
@@ -327,18 +422,17 @@ if rol_actual == "admin":
         if not bases_disponibles:
             st.warning("No hay bases cargadas")
         else:
+            # Contar estados
             conteo_estados = df["Estado"].value_counts().reindex(["Pendiente","Agendado","Renovado"], fill_value=0)
 
-            # ====== Dos columnas para gráficos lado a lado ======
-            col_g1, col_g2 = st.columns(2)
-
-            # ====== Gráfico de barras ======
+            # ====== Gráfico de barras cuadrado ======
+            st.subheader("Gráfico de barras de Estados")
             fig_bar = px.bar(
                 x=conteo_estados.index,
                 y=conteo_estados.values,
                 text=conteo_estados.values,
-                width=400,
-                height=400,
+                width=400,  # ancho cuadrado
+                height=400, # alto cuadrado
                 color=conteo_estados.index,
                 color_discrete_map={
                     "Pendiente":"red",
@@ -352,8 +446,10 @@ if rol_actual == "admin":
                 xaxis_title="Estado",
                 margin=dict(l=20,r=20,t=30,b=20)
             )
+            st.plotly_chart(fig_bar, use_container_width=False)
 
-            # ====== Gráfico de pastel ======
+            # ====== Gráfico de pastel cuadrado ======
+            st.subheader("Gráfico de pastel de Estados")
             fig_pie = px.pie(
                 names=conteo_estados.index,
                 values=conteo_estados.values,
@@ -367,18 +463,28 @@ if rol_actual == "admin":
                     "Renovado":"green"
                 }
             )
+            st.plotly_chart(fig_pie, use_container_width=False)
 
-            with col_g1:
-                st.subheader("Gráfico de barras")
-                st.plotly_chart(fig_bar, use_container_width=False)
-                # Descargar gráfico como imagen
-                buf_bar = fig_bar.to_image(format="png", width=400, height=400, scale=2)
-                st.download_button("📥 Descargar barras", buf_bar, "grafico_barras.png", "image/png")
+            # ====== DESCARGA DE DATOS ======
+            st.subheader("💾 Descargar datos filtrados")
+            
+            # CSV
+            csv = df_filtrado.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Descargar CSV",
+                data=csv,
+                file_name='datos_filtrados.csv',
+                mime='text/csv'
+            )
 
-            with col_g2:
-                st.subheader("Gráfico de pastel")
-                st.plotly_chart(fig_pie, use_container_width=False)
-                # Descargar gráfico como imagen
-                buf_pie = fig_pie.to_image(format="png", width=400, height=400, scale=2)
-                st.download_button("📥 Descargar pastel", buf_pie, "grafico_pastel.png", "image/png")
+            # Excel
+            excel_path = "datos_filtrados.xlsx"
+            df_filtrado.to_excel(excel_path, index=False)
+            with open(excel_path, "rb") as f:
+                st.download_button(
+                    label="Descargar Excel",
+                    data=f,
+                    file_name="datos_filtrados.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
 
