@@ -280,7 +280,7 @@ with tab_crm:
 
         fecha_texto = fecha.strftime("%d/%m/%Y")
 
-        mensaje = f"""Hola {nombre}, soy Juan José Mestra asesor comercial de {sede} 👋
+        mensaje = f"""Hola {nombre}, soy Juan José Mestra asesor comercial de (sede) 👋
 
 Tu vehículo con placa {placa} vence el {fecha_texto}.
 
