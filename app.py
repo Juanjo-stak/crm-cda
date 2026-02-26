@@ -5,22 +5,17 @@ import os
 import webbrowser
 
 # =============================
-# CONFIGURACIÓN GENERAL
+# CONFIG
 # =============================
 
 st.set_page_config(
-    page_title="CRM CDA Renovaciones",
+    page_title="CRM CDA PRO",
     layout="wide"
 )
 
 st.title("🚗 CRM Renovaciones CDA")
 
-# =============================
-# CARPETA DONDE SE GUARDAN BASES
-# =============================
-
 BASES_DIR = "bases"
-
 if not os.path.exists(BASES_DIR):
     os.makedirs(BASES_DIR)
 
@@ -29,73 +24,63 @@ if not os.path.exists(BASES_DIR):
 # =============================
 
 def listar_bases():
-    """Lista solo bases subidas por el usuario"""
-    archivos = os.listdir(BASES_DIR)
-    return [f for f in archivos if f.endswith(".db")]
+    return [f for f in os.listdir(BASES_DIR) if f.endswith(".db")]
 
 def conectar_db(nombre):
-    ruta = os.path.join(BASES_DIR, nombre)
-    return sqlite3.connect(ruta)
+    return sqlite3.connect(os.path.join(BASES_DIR, nombre))
 
 # =============================
-# SIDEBAR - SUBIR BASE
+# SIDEBAR
 # =============================
 
-st.sidebar.header("📂 Bases de Datos")
+st.sidebar.header("📂 Bases")
 
-archivo = st.sidebar.file_uploader(
-    "Subir base Excel",
-    type=["xlsx"]
-)
+archivo = st.sidebar.file_uploader("Subir Excel", type=["xlsx"])
 
-if archivo is not None:
-
+if archivo:
     df_excel = pd.read_excel(archivo)
-
     nombre_db = archivo.name.replace(".xlsx", ".db")
-    ruta_db = os.path.join(BASES_DIR, nombre_db)
 
-    conn = sqlite3.connect(ruta_db)
+    conn = conectar_db(nombre_db)
     df_excel.to_sql("clientes", conn, if_exists="replace", index=False)
     conn.close()
 
-    st.sidebar.success("✅ Base subida correctamente")
+    st.sidebar.success("Base subida ✅")
     st.rerun()
-
-# =============================
-# MOSTRAR SOLO BASES SUBIDAS
-# =============================
 
 bases = listar_bases()
 
-if len(bases) == 0:
-    st.warning("⚠️ No hay bases cargadas. Sube un archivo Excel para comenzar.")
+if not bases:
+    st.warning("Sube una base Excel para comenzar")
     st.stop()
 
-base_activa = st.sidebar.selectbox(
-    "Seleccionar base activa",
-    bases
-)
+base_activa = st.sidebar.selectbox("Base activa", bases)
 
 # =============================
 # CARGAR DATOS
 # =============================
 
 conn = conectar_db(base_activa)
-
-try:
-    df = pd.read_sql("SELECT * FROM clientes", conn)
-except:
-    st.error("❌ La base no contiene tabla válida.")
-    st.stop()
+df = pd.read_sql("SELECT * FROM clientes", conn)
 
 # =============================
-# FILTRO BUSCADOR
+# DASHBOARD
 # =============================
 
-st.subheader("🔎 Buscar cliente")
+st.subheader("📊 Dashboard")
 
-busqueda = st.text_input("Buscar por cualquier dato (placa, nombre, etc)")
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric("Total registros", len(df))
+
+# =============================
+# FILTROS
+# =============================
+
+st.subheader("🔎 Filtros")
+
+busqueda = st.text_input("Buscar (placa, nombre, teléfono...)")
 
 if busqueda:
     df = df[
@@ -104,47 +89,75 @@ if busqueda:
         .any(axis=1)
     ]
 
-st.dataframe(df, use_container_width=True)
+columna_filtro = st.selectbox("Filtrar por columna", ["Ninguno"] + list(df.columns))
+
+if columna_filtro != "Ninguno":
+    valor = st.text_input("Valor filtro")
+    if valor:
+        df = df[df[columna_filtro].astype(str).str.contains(valor, case=False)]
+
+st.metric("Resultados filtrados", len(df))
 
 # =============================
-# ENVÍO MASIVO WHATSAPP BUSINESS
+# TABLA CON ACCIONES
+# =============================
+
+st.subheader("📋 Clientes")
+
+telefono_col = st.selectbox("Columna teléfono", df.columns)
+nombre_col = st.selectbox("Columna nombre", df.columns)
+
+for i, fila in df.iterrows():
+
+    colA, colB, colC = st.columns([4,1,1])
+
+    with colA:
+        st.write(fila.to_dict())
+
+    numero = str(fila[telefono_col]).replace(".0","")
+    nombre = str(fila[nombre_col])
+
+    with colB:
+        if st.button("📞 Llamar", key=f"call{i}"):
+            webbrowser.open(f"tel:{numero}")
+
+    with colC:
+        if st.button("💬 WhatsApp", key=f"wa{i}"):
+
+            mensaje = f"Hola {nombre}, te recordamos tu revisión técnico mecánica 🚗✅"
+            mensaje = mensaje.replace(" ", "%20")
+
+            url = f"https://wa.me/57{numero}?text={mensaje}"
+            webbrowser.open(url)
+
+# =============================
+# ENVÍO MASIVO
 # =============================
 
 st.divider()
-st.subheader("📲 Envío Masivo WhatsApp Business")
+st.subheader("🚀 Envío Masivo WhatsApp")
 
-col_numero = st.selectbox(
-    "Columna que contiene teléfonos",
-    df.columns
+mensaje_masivo = st.text_area(
+    "Mensaje",
+    "Hola {nombre}, tu revisión técnico mecánica está próxima a vencer 🚗✅ Agenda tu cita."
 )
 
-col_nombre = st.selectbox(
-    "Columna que contiene nombres",
-    df.columns
-)
-
-mensaje = st.text_area(
-    "Mensaje a enviar",
-    "Hola {nombre}, te recordamos que tu revisión técnico mecánica está próxima a vencer 🚗✅ Agenda tu cita hoy mismo."
-)
-
-if st.button("🚀 Iniciar envío masivo"):
+if st.button("Enviar mensajes masivos"):
 
     enviados = 0
 
     for _, fila in df.iterrows():
+        numero = str(fila[telefono_col]).replace(".0","")
+        nombre = str(fila[nombre_col])
 
-        numero = str(fila[col_numero]).replace(".0","")
-        nombre = str(fila[col_nombre])
-
-        texto = mensaje.replace("{nombre}", nombre)
+        texto = mensaje_masivo.replace("{nombre}", nombre)
         texto = texto.replace(" ", "%20")
 
         url = f"https://wa.me/57{numero}?text={texto}"
-
         webbrowser.open_new_tab(url)
+
         enviados += 1
 
-    st.success(f"✅ Mensajes preparados: {enviados}")
+    st.success(f"{enviados} mensajes preparados")
 
 conn.close()
