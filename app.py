@@ -106,6 +106,70 @@ with col_logout2:
 
 carpeta_usuario = os.path.join(CARPETA_BASES, usuario_actual)
 os.makedirs(carpeta_usuario, exist_ok=True)
+# =========================
+# KPI PROFESIONAL VERTICAL
+# =========================
+
+st.subheader("📊 Métricas Generales")
+
+total = len(df)
+pendientes = (df["Estado"]=="Pendiente").sum()
+agendados = (df["Estado"]=="Agendado").sum()
+renovados = (df["Estado"]=="Renovado").sum()
+
+st.markdown(f"""
+<div style="
+    background-color:#1f2937;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:15px;
+    text-align:center;
+    color:white;">
+    <h3>Total Registros</h3>
+    <h1 style="font-size:40px;">{total}</h1>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div style="
+    background-color:#7f1d1d;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:15px;
+    text-align:center;
+    color:white;">
+    <h3>Pendientes</h3>
+    <h1 style="font-size:40px;">{pendientes}</h1>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div style="
+    background-color:#92400e;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:15px;
+    text-align:center;
+    color:white;">
+    <h3>Agendados</h3>
+    <h1 style="font-size:40px;">{agendados}</h1>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div style="
+    background-color:#065f46;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:15px;
+    text-align:center;
+    color:white;">
+    <h3>Renovados</h3>
+    <h1 style="font-size:40px;">{renovados}</h1>
+</div>
+""", unsafe_allow_html=True)
+
+st.divider()
 
 # ======================================================
 # TABS
