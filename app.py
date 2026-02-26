@@ -1,163 +1,243 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
 import os
-import webbrowser
+import json
+import urllib.parse
 
-# =============================
+# ======================================================
 # CONFIG
-# =============================
+# ======================================================
 
-st.set_page_config(
-    page_title="CRM CDA PRO",
-    layout="wide"
-)
+st.set_page_config(page_title="CRM CDA", layout="wide")
 
-st.title("🚗 CRM Renovaciones CDA")
+ARCHIVO_USUARIOS = "usuarios.json"
+CARPETA_BASES = "bases"
 
-BASES_DIR = "bases"
-if not os.path.exists(BASES_DIR):
-    os.makedirs(BASES_DIR)
+os.makedirs(CARPETA_BASES, exist_ok=True)
 
-# =============================
-# FUNCIONES
-# =============================
+# ======================================================
+# USUARIOS
+# ======================================================
 
-def listar_bases():
-    return [f for f in os.listdir(BASES_DIR) if f.endswith(".db")]
+def inicializar_usuarios():
+    if not os.path.exists(ARCHIVO_USUARIOS):
+        with open(ARCHIVO_USUARIOS, "w") as f:
+            json.dump({
+                "admin": {
+                    "password": "admin123",
+                    "rol": "admin"
+                }
+            }, f, indent=4)
 
-def conectar_db(nombre):
-    return sqlite3.connect(os.path.join(BASES_DIR, nombre))
+def cargar_usuarios():
+    with open(ARCHIVO_USUARIOS, "r") as f:
+        return json.load(f)
 
-# =============================
-# SIDEBAR
-# =============================
+def guardar_usuarios(data):
+    with open(ARCHIVO_USUARIOS, "w") as f:
+        json.dump(data, f, indent=4)
 
-st.sidebar.header("📂 Bases")
+inicializar_usuarios()
 
-archivo = st.sidebar.file_uploader("Subir Excel", type=["xlsx"])
+# ======================================================
+# SESSION
+# ======================================================
 
-if archivo:
-    df_excel = pd.read_excel(archivo)
-    nombre_db = archivo.name.replace(".xlsx", ".db")
+if "login" not in st.session_state:
+    st.session_state.login = False
+if "usuario" not in st.session_state:
+    st.session_state.usuario = None
+if "rol" not in st.session_state:
+    st.session_state.rol = None
 
-    conn = conectar_db(nombre_db)
-    df_excel.to_sql("clientes", conn, if_exists="replace", index=False)
-    conn.close()
+# ======================================================
+# LOGIN
+# ======================================================
 
-    st.sidebar.success("Base subida ✅")
+def pantalla_login():
+    st.title("🔐 CRM CDA")
+
+    user = st.text_input("Usuario")
+    pwd = st.text_input("Contraseña", type="password")
+
+    if st.button("Ingresar"):
+        usuarios = cargar_usuarios()
+
+        if user in usuarios and usuarios[user]["password"] == pwd:
+            st.session_state.login = True
+            st.session_state.usuario = user
+            st.session_state.rol = usuarios[user]["rol"]
+            st.rerun()
+        else:
+            st.error("Credenciales incorrectas")
+
+if not st.session_state.login:
+    pantalla_login()
+    st.stop()
+
+# ======================================================
+# HEADER
+# ======================================================
+
+usuario_actual = st.session_state.usuario
+rol_actual = st.session_state.rol
+
+st.title("🚗 Renovaciones CDA")
+st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
+
+if st.button("🚪 Cerrar sesión"):
+    st.session_state.login = False
+    st.session_state.usuario = None
+    st.session_state.rol = None
     st.rerun()
 
-bases = listar_bases()
+# ======================================================
+# CARPETA USUARIO
+# ======================================================
+
+carpeta_usuario = os.path.join(CARPETA_BASES, usuario_actual)
+os.makedirs(carpeta_usuario, exist_ok=True)
+
+# ======================================================
+# SIDEBAR BASES
+# ======================================================
+
+st.sidebar.header("📂 Bases de datos")
+
+archivo_subido = st.sidebar.file_uploader("Subir Excel", type=["xlsx"])
+
+if archivo_subido:
+    ruta = os.path.join(carpeta_usuario, archivo_subido.name)
+    with open(ruta, "wb") as f:
+        f.write(archivo_subido.getbuffer())
+    st.sidebar.success("Base subida correctamente")
+    st.rerun()
+
+bases = [
+    f for f in os.listdir(carpeta_usuario)
+    if f.endswith(".xlsx")
+]
 
 if not bases:
     st.warning("Sube una base Excel para comenzar")
     st.stop()
 
-base_activa = st.sidebar.selectbox("Base activa", bases)
+base_seleccionada = st.sidebar.selectbox("Seleccionar base", bases)
 
-# =============================
-# CARGAR DATOS
-# =============================
+ARCHIVO = os.path.join(carpeta_usuario, base_seleccionada)
 
-conn = conectar_db(base_activa)
-df = pd.read_sql("SELECT * FROM clientes", conn)
+# ======================================================
+# CARGAR DATA
+# ======================================================
 
-# =============================
+df = pd.read_excel(ARCHIVO)
+df.columns = df.columns.str.strip()
+
+# detectar fecha automáticamente
+columnas_lower = {c.lower(): c for c in df.columns}
+
+posibles = ["fecha_renovacion","fecha","vencimiento","fecha vencimiento"]
+
+col_fecha = None
+for p in posibles:
+    if p in columnas_lower:
+        col_fecha = columnas_lower[p]
+        break
+
+if col_fecha is None:
+    st.error("No se encontró columna de fecha")
+    st.stop()
+
+df.rename(columns={col_fecha:"Fecha_Renovacion"}, inplace=True)
+
+df["Fecha_Renovacion"] = pd.to_datetime(
+    df["Fecha_Renovacion"],
+    errors="coerce",
+    dayfirst=True
+)
+
+df = df[df["Fecha_Renovacion"].notna()]
+
+if "Estado" not in df.columns:
+    df["Estado"] = "Pendiente"
+
+# ======================================================
 # DASHBOARD
-# =============================
+# ======================================================
 
 st.subheader("📊 Dashboard")
 
-col1, col2 = st.columns(2)
+c1,c2,c3 = st.columns(3)
 
-with col1:
-    st.metric("Total registros", len(df))
+c1.metric("Total", len(df))
+c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
+c3.metric("Renovados", (df["Estado"]=="Renovado").sum())
 
-# =============================
-# FILTROS
-# =============================
+# ======================================================
+# WHATSAPP
+# ======================================================
 
-st.subheader("🔎 Filtros")
+def link_whatsapp(nombre, placa, telefono, fecha):
 
-busqueda = st.text_input("Buscar (placa, nombre, teléfono...)")
+    telefono = str(telefono).replace(".0","").replace(" ","")
 
-if busqueda:
-    df = df[
-        df.astype(str)
-        .apply(lambda x: x.str.contains(busqueda, case=False))
-        .any(axis=1)
-    ]
+    if not telefono.startswith("57"):
+        telefono = "57"+telefono
 
-columna_filtro = st.selectbox("Filtrar por columna", ["Ninguno"] + list(df.columns))
+    fecha_txt = fecha.strftime("%d/%m/%Y")
 
-if columna_filtro != "Ninguno":
-    valor = st.text_input("Valor filtro")
-    if valor:
-        df = df[df[columna_filtro].astype(str).str.contains(valor, case=False)]
+    mensaje = f"""Hola {nombre} 👋
+Tu vehículo {placa} vence el {fecha_txt}.
+¿Deseas agendar tu revisión? 🚗✅"""
 
-st.metric("Resultados filtrados", len(df))
+    mensaje = urllib.parse.quote(mensaje)
 
-# =============================
-# TABLA CON ACCIONES
-# =============================
+    return f"https://wa.me/{telefono}?text={mensaje}"
+
+# ======================================================
+# LISTADO
+# ======================================================
 
 st.subheader("📋 Clientes")
 
-telefono_col = st.selectbox("Columna teléfono", df.columns)
-nombre_col = st.selectbox("Columna nombre", df.columns)
+estados = ["Pendiente","Agendado","Renovado"]
 
-for i, fila in df.iterrows():
+for i,row in df.iterrows():
 
-    colA, colB, colC = st.columns([4,1,1])
+    col1,col2,col3,col4 = st.columns(4)
 
-    with colA:
-        st.write(fila.to_dict())
+    col1.write(f"**{row.get('Placa','')}**")
+    col1.write(row.get("Cliente",""))
 
-    numero = str(fila[telefono_col]).replace(".0","")
-    nombre = str(fila[nombre_col])
+    col2.write(row["Fecha_Renovacion"].date())
 
-    with colB:
-        if st.button("📞 Llamar", key=f"call{i}"):
-            webbrowser.open(f"tel:{numero}")
+    estado_actual = row["Estado"]
 
-    with colC:
-        if st.button("💬 WhatsApp", key=f"wa{i}"):
+    estado = col3.selectbox(
+        "Estado",
+        estados,
+        index=estados.index(estado_actual),
+        key=f"estado_{i}"
+    )
 
-            mensaje = f"Hola {nombre}, te recordamos tu revisión técnico mecánica 🚗✅"
-            mensaje = mensaje.replace(" ", "%20")
+    if estado != estado_actual:
+        df.loc[i,"Estado"] = estado
+        df.to_excel(ARCHIVO, index=False)
+        st.rerun()
 
-            url = f"https://wa.me/57{numero}?text={mensaje}"
-            webbrowser.open(url)
+    if "Telefono" in df.columns:
 
-# =============================
-# ENVÍO MASIVO
-# =============================
+        url = link_whatsapp(
+            row.get("Cliente",""),
+            row.get("Placa",""),
+            row.get("Telefono",""),
+            row["Fecha_Renovacion"]
+        )
 
-st.divider()
-st.subheader("🚀 Envío Masivo WhatsApp")
-
-mensaje_masivo = st.text_area(
-    "Mensaje",
-    "Hola {nombre}, tu revisión técnico mecánica está próxima a vencer 🚗✅ Agenda tu cita."
-)
-
-if st.button("Enviar mensajes masivos"):
-
-    enviados = 0
-
-    for _, fila in df.iterrows():
-        numero = str(fila[telefono_col]).replace(".0","")
-        nombre = str(fila[nombre_col])
-
-        texto = mensaje_masivo.replace("{nombre}", nombre)
-        texto = texto.replace(" ", "%20")
-
-        url = f"https://wa.me/57{numero}?text={texto}"
-        webbrowser.open_new_tab(url)
-
-        enviados += 1
-
-    st.success(f"{enviados} mensajes preparados")
-
-conn.close()
+        col4.markdown(
+            f'<a href="{url}" target="_blank">'
+            f'<button style="background:#25D366;color:white;'
+            f'border:none;padding:8px;border-radius:6px;width:100%;">'
+            f'💬 WhatsApp</button></a>',
+            unsafe_allow_html=True
+        )
