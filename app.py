@@ -141,7 +141,6 @@ La revisión técnico mecánica de tu vehículo con placa {placa} vence el {fech
     mensaje = urllib.parse.quote(mensaje)
 
     return f"https://wa.me/{telefono}?text={mensaje}"
-    
 
 # ======================================================
 # ====================== CRM ===========================
@@ -236,11 +235,9 @@ with tabs[0]:
 
     with col1:
         fecha_inicio = st.date_input("Desde", df["Fecha_Renovacion"].min().date())
-        
 
     with col2:
         fecha_fin = st.date_input("Hasta", df["Fecha_Renovacion"].max().date())
-       
 
     with col3:
         sedes = ["Todas"] + sorted(df["Sede"].astype(str).unique())
@@ -265,7 +262,7 @@ with tabs[0]:
         col1.write(f"**{row.get('Placa','')}**")
         col1.write(row.get("Cliente",""))
 
-  col2.write(row["Fecha_Renovacion"].date())
+        col2.write(row["Fecha_Renovacion"].date())
 
         estado = col3.selectbox(
             "Estado",
@@ -385,4 +382,5 @@ if rol_actual=="admin":
                          title="Clientes por Fecha de Vencimiento")
 
         st.plotly_chart(fig_line,use_container_width=True)
+
 
