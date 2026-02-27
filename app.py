@@ -228,6 +228,15 @@ with tabs[0]:
     if "Sede" not in df.columns:
         df["Sede"] = "Sin sede"
 
+    # ================= DASHBOARD =================
+
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("Total", len(df))
+    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
+    c3.metric("Agendados", (df["Estado"]=="Agendado").sum())
+    c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
+
+    st.divider()
 
     # ================= FILTROS =================
 
@@ -333,6 +342,15 @@ if rol_actual == "admin":
             st.write(f"👤 {user} ({datos['rol']})")
             # ================= DASHBOARD PROFESIONAL =================
 
+st.markdown("## 📊 Dashboard de Gestión")
+
+total = len(df)
+
+pendientes = (df["Estado"]=="Pendiente").sum()
+agendados = (df["Estado"]=="Agendado").sum()
+renovados = (df["Estado"]=="Renovado").sum()
+
+contactados = agendados + renovados
 
 # ===== Métricas principales =====
 c1,c2,c3,c4 = st.columns(4)
@@ -424,3 +442,4 @@ if rol_actual=="admin":
                          title="Clientes por Fecha de Vencimiento")
 
         st.plotly_chart(fig_line,use_container_width=True)
+
