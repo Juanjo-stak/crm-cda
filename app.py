@@ -341,27 +341,6 @@ if rol_actual == "admin":
         for user,datos in usuarios.items():
             st.write(f"👤 {user} ({datos['rol']})")
             
- # ================= DASHBOARD PROFESIONAL =================
-
-st.markdown("## 📊 Dashboard de Gestión")
-
-total = len(df)
-
-pendientes = (df["Estado"]=="Pendiente").sum()
-agendados = (df["Estado"]=="Agendado").sum()
-renovados = (df["Estado"]=="Renovado").sum()
-
-contactados = agendados + renovados
-
-# ===== Métricas principales =====
-c1,c2,c3,c4 = st.columns(4)
-
-c1.metric("Total Clientes", total)
-c2.metric("Pendientes", pendientes)
-c3.metric("Agendados", agendados)
-c4.metric("Renovados", renovados)
-
-st.divider()
 
 # ===== Métricas comerciales =====
 
