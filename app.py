@@ -57,7 +57,7 @@ if "rol" not in st.session_state:
 # ======================================================
 
 def pantalla_login():
-    st.title("CRM CDA")
+    st.title("🔐 CRM CDA")
 
     user = st.text_input("Usuario")
     pwd = st.text_input("Contraseña", type="password")
@@ -84,10 +84,10 @@ if not st.session_state.login:
 usuario_actual = st.session_state.usuario
 rol_actual = st.session_state.rol
 
-st.title(" Renovaciones CDA")
+st.title("🚗 Renovaciones CDA")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
-if st.button("Cerrar sesión"):
+if st.button("🚪 Cerrar sesión"):
     st.session_state.login = False
     st.session_state.usuario = None
     st.session_state.rol = None
@@ -104,7 +104,7 @@ os.makedirs(carpeta_usuario, exist_ok=True)
 # TABS
 # ======================================================
 
-tabs_lista = [" CRM"]
+tabs_lista = ["📊 CRM"]
 if rol_actual == "admin":
     tabs_lista += ["👑 Panel Administración", "📈 Dashboard Visual"]
 
@@ -130,18 +130,18 @@ def link_whatsapp(nombre, placa, telefono, fecha, sede):
 
     fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month-1]} de {fecha.year}"
 
-    mensaje = f"""Hola {nombre}, soy Juan José Mestra 
+    mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
 Te escribimos del CDA del Occidente — sede {sede}.
 
 La revisión técnico mecánica de tu vehículo con placa {placa} vence el {fecha_texto}.
 
-¿Deseas agendar tu revisión hoy? """
+¿Deseas agendar tu revisión hoy? 🚗✅"""
 
     mensaje = urllib.parse.quote(mensaje)
 
     return f"https://wa.me/{telefono}?text={mensaje}"
-   
+
 # ======================================================
 # ====================== CRM ===========================
 # ======================================================
@@ -340,7 +340,27 @@ if rol_actual == "admin":
 
         for user,datos in usuarios.items():
             st.write(f"👤 {user} ({datos['rol']})")
-            
+            # ================= DASHBOARD PROFESIONAL =================
+
+st.markdown("## 📊 Dashboard de Gestión")
+
+total = len(df)
+
+pendientes = (df["Estado"]=="Pendiente").sum()
+agendados = (df["Estado"]=="Agendado").sum()
+renovados = (df["Estado"]=="Renovado").sum()
+
+contactados = agendados + renovados
+
+# ===== Métricas principales =====
+c1,c2,c3,c4 = st.columns(4)
+
+c1.metric("Total Clientes", total)
+c2.metric("Pendientes", pendientes)
+c3.metric("Agendados", agendados)
+c4.metric("Renovados", renovados)
+
+st.divider()
 
 # ===== Métricas comerciales =====
 
@@ -420,5 +440,7 @@ if rol_actual=="admin":
 
         fig_line=px.line(linea,x="Dia",y="Clientes",markers=True,
                          title="Clientes por Fecha de Vencimiento")
+
+        st.plotly_chart(fig_line,use_container_width=True)
 
         st.plotly_chart(fig_line,use_container_width=True)
