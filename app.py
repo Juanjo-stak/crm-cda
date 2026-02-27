@@ -282,7 +282,7 @@ with tab_crm:
 
         mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
-La revisión técnico mecánicaTu vehículo con placa {placa} vence el {fecha_texto}.
+La revisión técnico mecánica de tú vehículo con placa {placa} vence el {fecha_texto}.
 
 ¿Deseas agendar tu revisión? 🚗✅"""
 
