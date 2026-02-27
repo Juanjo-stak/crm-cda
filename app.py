@@ -138,16 +138,7 @@ La revisión técnico mecánica de tu vehículo con placa {placa} vence el {fech
     mensaje = urllib.parse.quote(mensaje)
 
     return f"https://wa.me/{telefono}?text={mensaje}"
-def semaforo(fecha):
-    hoy = pd.Timestamp.today().normalize()
-    dias = (fecha - hoy).days
 
-    if dias <= 3:
-        return "🔴 URGENTE"
-    elif dias <= 7:
-        return "🟡 Próximo"
-    else:
-        return "🟢 Normal"
 # ======================================================
 # ====================== CRM ===========================
 # ======================================================
@@ -234,14 +225,7 @@ with tabs[0]:
     if "Sede" not in df.columns:
         df["Sede"] = "Sin sede"
 
-    # ================= DASHBOARD =================
-
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Total", len(df))
-    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
-    c3.metric("Agendados", (df["Estado"]=="Agendado").sum())
-    c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
-
+    
     st.divider()
 
     # ================= FILTROS =================
