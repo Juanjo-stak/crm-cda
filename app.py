@@ -333,15 +333,6 @@ if rol_actual == "admin":
             st.write(f"👤 {user} ({datos['rol']})")
             # ================= DASHBOARD PROFESIONAL =================
 
-st.markdown("## 📊 Dashboard de Gestión")
-
-total = len(df)
-
-pendientes = (df["Estado"]=="Pendiente").sum()
-agendados = (df["Estado"]=="Agendado").sum()
-renovados = (df["Estado"]=="Renovado").sum()
-
-contactados = agendados + renovados
 
 # ===== Métricas principales =====
 c1,c2,c3,c4 = st.columns(4)
