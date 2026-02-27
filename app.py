@@ -1,10 +1,9 @@
-iimport streamlit as st
+import streamlit as st
 import pandas as pd
 import urllib.parse
 import os
 import json
 import shutil
-import plotly.express as px
 
 # ======================================================
 # CONFIGURACIÓN
@@ -159,7 +158,7 @@ with tab_crm:
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
     # ==================================================
-    # ELIMINAR BASE
+    # ELIMINAR BASE (YA AGREGADO ANTES)
     # ==================================================
 
     st.sidebar.divider()
@@ -223,30 +222,6 @@ with tab_crm:
     st.divider()
 
     # ==================================================
-    # DASHBOARD GRÁFICO EXTRA
-    # ==================================================
-    st.markdown("## 📈 Dashboard Visual de Estados")
-
-    conteo_estados = df["Estado"].value_counts().reindex(["Pendiente","Agendado","Renovado"], fill_value=0)
-
-    # Gráfico de barras
-    st.bar_chart(conteo_estados)
-
-    # Gráfico de pastel
-    fig = px.pie(
-        names=conteo_estados.index,
-        values=conteo_estados.values,
-        title="Proporción de Estados",
-        color=conteo_estados.index,
-        color_discrete_map={
-            "Pendiente":"red",
-            "Agendado":"yellow",
-            "Renovado":"green"
-        }
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # ==================================================
     # FILTROS
     # ==================================================
 
@@ -281,7 +256,7 @@ with tab_crm:
     st.divider()
 
     # ==================================================
-    # WHATSAPP & LLAMAR
+    # WHATSAPP
     # ==================================================
 
     def link_whatsapp(nombre, placa, telefono, fecha):
@@ -424,5 +399,3 @@ if rol_actual == "admin":
                         shutil.rmtree(carpeta_eliminar)
                     st.success("Usuario eliminado")
                     st.rerun()
-
-
