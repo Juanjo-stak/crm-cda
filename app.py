@@ -141,6 +141,20 @@ La revisión técnico mecánica de tu vehículo con placa {placa} vence el {fech
     mensaje = urllib.parse.quote(mensaje)
 
     return f"https://wa.me/{telefono}?text={mensaje}"
+    # ======================================================
+# SEMAFORO PRIORIDAD
+# ======================================================
+
+def semaforo(fecha):
+    hoy = pd.Timestamp.today().normalize()
+    dias = (fecha - hoy).days
+
+    if dias <= 3:
+        return "🔴 URGENTE"
+    elif dias <= 7:
+        return "🟡 Próximo"
+    else:
+        return "🟢 Normal"
 
 # ======================================================
 # ====================== CRM ===========================
@@ -263,7 +277,7 @@ with tabs[0]:
         col1.write(row.get("Cliente",""))
 
         col2.write(row["Fecha_Renovacion"].date())
-
+col2.write(semaforo(row["Fecha_Renovacion"]))
         estado = col3.selectbox(
             "Estado",
             estados,
