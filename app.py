@@ -115,7 +115,10 @@ tabs = st.tabs(tabs_lista)
 # ======================================================
 
 def link_whatsapp(nombre, placa, telefono, fecha, sede):
-    
+
+    if pd.isna(telefono):
+        return None
+
     telefono = str(telefono).replace(".0","").replace(" ","").replace("-","")
 
     if not telefono.startswith("57"):
@@ -225,8 +228,6 @@ with tabs[0]:
     if "Sede" not in df.columns:
         df["Sede"] = "Sin sede"
 
-    
-    st.divider()
 
     # ================= FILTROS =================
 
@@ -330,7 +331,27 @@ if rol_actual == "admin":
 
         for user,datos in usuarios.items():
             st.write(f"👤 {user} ({datos['rol']})")
-           
+            # ================= DASHBOARD PROFESIONAL =================
+
+st.markdown("## 📊 Dashboard de Gestión")
+
+total = len(df)
+
+pendientes = (df["Estado"]=="Pendiente").sum()
+agendados = (df["Estado"]=="Agendado").sum()
+renovados = (df["Estado"]=="Renovado").sum()
+
+contactados = agendados + renovados
+
+# ===== Métricas principales =====
+c1,c2,c3,c4 = st.columns(4)
+
+c1.metric("Total Clientes", total)
+c2.metric("Pendientes", pendientes)
+c3.metric("Agendados", agendados)
+c4.metric("Renovados", renovados)
+
+st.divider()
 
 # ===== Métricas comerciales =====
 
