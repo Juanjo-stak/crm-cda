@@ -278,6 +278,7 @@ with tabs[0]:
 
         col2.write(row["Fecha_Renovacion"].date())
 col2.write(semaforo(row["Fecha_Renovacion"]))
+
         estado = col3.selectbox(
             "Estado",
             estados,
