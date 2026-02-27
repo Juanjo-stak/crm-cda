@@ -301,7 +301,37 @@ with tabs[0]:
 
         st.divider()
 
+# ======================================================
+# PANEL ADMIN
+# ======================================================
 
+if rol_actual == "admin":
+
+    with tabs[1]:
+
+        st.header("👑 Panel Administración")
+
+        usuarios = cargar_usuarios()
+
+        nuevo_user = st.text_input("Nuevo usuario")
+        nueva_pass = st.text_input("Contraseña", type="password")
+
+        if st.button("Crear Usuario"):
+            if nuevo_user not in usuarios:
+                usuarios[nuevo_user] = {
+                    "password": nueva_pass,
+                    "rol": "usuario"
+                }
+                guardar_usuarios(usuarios)
+                os.makedirs(os.path.join(CARPETA_BASES,nuevo_user),exist_ok=True)
+                st.success("Usuario creado")
+                st.rerun()
+
+        st.divider()
+
+        for user,datos in usuarios.items():
+            st.write(f"👤 {user} ({datos['rol']})")
+          
 # ======================================================
 # DASHBOARD GOOGLE ANALYTICS STYLE
 # ======================================================
@@ -350,40 +380,5 @@ if rol_actual=="admin":
 
         fig_line=px.line(linea,x="Dia",y="Clientes",markers=True,
                          title="Clientes por Fecha de Vencimiento")
-        # ======================================================
-# PANEL ADMIN
-# ======================================================
-
-if rol_actual == "admin":
-
-    with tabs[1]:
-
-        st.header("👑 Panel Administración")
-
-        usuarios = cargar_usuarios()
-
-        nuevo_user = st.text_input("Nuevo usuario")
-        nueva_pass = st.text_input("Contraseña", type="password")
-
-        if st.button("Crear Usuario"):
-            if nuevo_user not in usuarios:
-                usuarios[nuevo_user] = {
-                    "password": nueva_pass,
-                    "rol": "usuario"
-                }
-                guardar_usuarios(usuarios)
-                os.makedirs(os.path.join(CARPETA_BASES,nuevo_user),exist_ok=True)
-                st.success("Usuario creado")
-                st.rerun()
-
-        st.divider()
-
-        for user,datos in usuarios.items():
-            st.write(f"👤 {user} ({datos['rol']})")
-          
 
         st.plotly_chart(fig_line,use_container_width=True)
-
-
-        st.plotly_chart(fig_line,use_container_width=True)
-
