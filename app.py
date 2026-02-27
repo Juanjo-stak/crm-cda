@@ -300,7 +300,9 @@ with tabs[0]:
             )
 
         st.divider()
-        # ======================================================
+
+
+# ======================================================
 # DASHBOARD GOOGLE ANALYTICS STYLE
 # ======================================================
 
@@ -348,9 +350,7 @@ if rol_actual=="admin":
 
         fig_line=px.line(linea,x="Dia",y="Clientes",markers=True,
                          title="Clientes por Fecha de Vencimiento")
-
-
-# ======================================================
+        # ======================================================
 # PANEL ADMIN
 # ======================================================
 
@@ -381,6 +381,9 @@ if rol_actual == "admin":
         for user,datos in usuarios.items():
             st.write(f"👤 {user} ({datos['rol']})")
           
+
+        st.plotly_chart(fig_line,use_container_width=True)
+
 
         st.plotly_chart(fig_line,use_container_width=True)
 
