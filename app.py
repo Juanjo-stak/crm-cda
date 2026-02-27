@@ -185,6 +185,20 @@ with tabs[0]:
     )
 
     ARCHIVO = dict(bases)[seleccion]
+     # ==================================================
+    # ELIMINAR BASE
+    # ==================================================
+
+    st.sidebar.divider()
+    st.sidebar.subheader("🗑 Eliminar Base de Datos")
+
+    if st.sidebar.button("Eliminar base seleccionada"):
+        try:
+            os.remove(ARCHIVO)
+            st.sidebar.success("Base eliminada correctamente")
+            st.rerun()
+        except Exception:
+            st.sidebar.error("Error al eliminar la base")
 
     # ================= CARGAR DATA =================
 
