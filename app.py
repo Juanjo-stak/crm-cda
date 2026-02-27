@@ -106,7 +106,7 @@ os.makedirs(carpeta_usuario, exist_ok=True)
 
 tabs_lista = ["📊 CRM"]
 if rol_actual == "admin":
-    tabs_lista += [ "📈 Dashboard Visual","Panel Administración"]
+    tabs_lista += [ "Dashboard Visual","Panel Administración"]
 
 tabs = st.tabs(tabs_lista)
 
@@ -309,7 +309,7 @@ if rol_actual == "admin":
 
     with tabs[1]:
 
-        st.header("👑 Panel Administración")
+        st.header(" Dashboard Visual")
 
         usuarios = cargar_usuarios()
 
@@ -340,7 +340,7 @@ if rol_actual=="admin":
 
     with tabs[2]:
 
-        st.header("📈 Dashboard Analítico")
+        st.header("Panel Administración")
 
         total=len(df)
         pendientes=(df["Estado"]=="Pendiente").sum()
