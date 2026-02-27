@@ -378,3 +378,152 @@ c8.metric("🚨 Vencen Hoy", vencen_hoy)
 c9.metric("⏳ Próximos 7 días", proximos_7)
 
 st.divider()
+
+with tab_dashboard:
+
+    st.header("📈 Analytics Comercial CDA")
+
+    if df.empty:
+        st.warning("No hay datos")
+        st.stop()
+
+    # ======================================================
+    # PREPARAR DATOS
+    # ======================================================
+
+    df["Fecha_Renovacion"] = pd.to_datetime(df["Fecha_Renovacion"])
+
+    conteo_estados = df["Estado"].value_counts().reindex(
+        ["Pendiente","Agendado","Renovado"],
+        fill_value=0
+    )
+
+    # ======================================================
+    # 1️⃣ FUNNEL COMERCIAL (GOOGLE ANALYTICS STYLE)
+    # ======================================================
+
+    st.subheader("🎯 Embudo Comercial")
+
+    funnel_df = pd.DataFrame({
+        "Estado": conteo_estados.index,
+        "Cantidad": conteo_estados.values
+    })
+
+    fig_funnel = px.funnel(
+        funnel_df,
+        x="Cantidad",
+        y="Estado",
+        color="Estado",
+        color_discrete_map={
+            "Pendiente":"#ff4b4b",
+            "Agendado":"#f7c948",
+            "Renovado":"#2ecc71"
+        },
+        height=450
+    )
+
+    st.plotly_chart(fig_funnel, use_container_width=True)
+
+    st.divider()
+
+    # ======================================================
+    # 2️⃣ EVOLUCIÓN DE VENCIMIENTOS (LINE CHART)
+    # ======================================================
+
+    st.subheader("📈 Evolución de Vencimientos")
+
+    evolucion = (
+        df.groupby(df["Fecha_Renovacion"].dt.date)
+        .size()
+        .reset_index(name="Clientes")
+    )
+
+    fig_line = px.line(
+        evolucion,
+        x="Fecha_Renovacion",
+        y="Clientes",
+        markers=True,
+        height=450
+    )
+
+    fig_line.update_layout(
+        xaxis_title="Fecha",
+        yaxis_title="Cantidad",
+        hovermode="x unified"
+    )
+
+    st.plotly_chart(fig_line, use_container_width=True)
+
+    st.divider()
+
+    # ======================================================
+    # 3️⃣ DISTRIBUCIÓN POR SEDE
+    # ======================================================
+
+    st.subheader("🏢 Distribución por Sede")
+
+    if "Sede" in df.columns:
+
+        sede_data = df["Sede"].fillna("Sin sede").value_counts().reset_index()
+        sede_data.columns = ["Sede","Clientes"]
+
+        fig_bar = px.bar(
+            sede_data,
+            x="Sede",
+            y="Clientes",
+            text="Clientes",
+            color="Sede",
+            height=450
+        )
+
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+    st.divider()
+
+    # ======================================================
+    # 4️⃣ ACTIVIDAD DIARIA (HEATMAP STYLE)
+    # ======================================================
+
+    st.subheader("📅 Actividad de Renovaciones")
+
+    df["Dia"] = df["Fecha_Renovacion"].dt.day_name()
+
+    orden_dias = [
+        "Monday","Tuesday","Wednesday",
+        "Thursday","Friday","Saturday","Sunday"
+    ]
+
+    actividad = df["Dia"].value_counts().reindex(orden_dias).fillna(0)
+
+    actividad_df = actividad.reset_index()
+    actividad_df.columns = ["Dia","Cantidad"]
+
+    fig_dias = px.bar(
+        actividad_df,
+        x="Dia",
+        y="Cantidad",
+        color="Cantidad",
+        height=400
+    )
+
+    st.plotly_chart(fig_dias, use_container_width=True)
+
+    st.divider()
+
+    # ======================================================
+    # 5️⃣ KPI VISUAL (GA STYLE)
+    # ======================================================
+
+    st.subheader("🚀 Indicadores Clave")
+
+    total = len(df)
+    renovados = conteo_estados["Renovado"]
+    agendados = conteo_estados["Agendado"]
+
+    tasa_conversion = (renovados / total * 100) if total else 0
+    tasa_agendamiento = (agendados / total * 100) if total else 0
+
+    k1,k2 = st.columns(2)
+
+    k1.metric("✅ Conversión Total", f"{tasa_conversion:.1f}%")
+    k2.metric("📅 Agendamiento", f"{tasa_agendamiento:.1f}%")
