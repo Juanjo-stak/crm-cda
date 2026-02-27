@@ -326,152 +326,58 @@ if rol_actual == "admin":
 
         for user,datos in usuarios.items():
             st.write(f"👤 {user} ({datos['rol']})")
-            
-            with tab_dashboard:
+            # ================= DASHBOARD PROFESIONAL =================
 
-    st.header("📈 Analytics Comercial CDA")
+st.markdown("## 📊 Dashboard de Gestión")
 
-    if df.empty:
-        st.warning("No hay datos")
-        st.stop()
+total = len(df)
 
-    # ======================================================
-    # PREPARAR DATOS
-    # ======================================================
+pendientes = (df["Estado"]=="Pendiente").sum()
+agendados = (df["Estado"]=="Agendado").sum()
+renovados = (df["Estado"]=="Renovado").sum()
 
-    df["Fecha_Renovacion"] = pd.to_datetime(df["Fecha_Renovacion"])
+contactados = agendados + renovados
 
-    conteo_estados = df["Estado"].value_counts().reindex(
-        ["Pendiente","Agendado","Renovado"],
-        fill_value=0
-    )
+# ===== Métricas principales =====
+c1,c2,c3,c4 = st.columns(4)
 
-    # ======================================================
-    # 1️⃣ FUNNEL COMERCIAL (GOOGLE ANALYTICS STYLE)
-    # ======================================================
+c1.metric("Total Clientes", total)
+c2.metric("Pendientes", pendientes)
+c3.metric("Agendados", agendados)
+c4.metric("Renovados", renovados)
 
-    st.subheader("🎯 Embudo Comercial")
+st.divider()
 
-    funnel_df = pd.DataFrame({
-        "Estado": conteo_estados.index,
-        "Cantidad": conteo_estados.values
-    })
+# ===== Métricas comerciales =====
 
-    fig_funnel = px.funnel(
-        funnel_df,
-        x="Cantidad",
-        y="Estado",
-        color="Estado",
-        color_discrete_map={
-            "Pendiente":"#ff4b4b",
-            "Agendado":"#f7c948",
-            "Renovado":"#2ecc71"
-        },
-        height=450
-    )
+tasa_contacto = (contactados/total*100) if total else 0
+tasa_agendamiento = (agendados/contactados*100) if contactados else 0
+tasa_renovacion = (renovados/total*100) if total else 0
 
-    st.plotly_chart(fig_funnel, use_container_width=True)
+c5,c6,c7 = st.columns(3)
 
-    st.divider()
+c5.metric("📞 Tasa Contacto", f"{tasa_contacto:.1f}%")
+c6.metric("📅 Tasa Agendamiento", f"{tasa_agendamiento:.1f}%")
+c7.metric("✅ Tasa Renovación", f"{tasa_renovacion:.1f}%")
 
-    # ======================================================
-    # 2️⃣ EVOLUCIÓN DE VENCIMIENTOS (LINE CHART)
-    # ======================================================
+st.divider()
 
-    st.subheader("📈 Evolución de Vencimientos")
+# ===== Métricas de urgencia =====
 
-    evolucion = (
-        df.groupby(df["Fecha_Renovacion"].dt.date)
-        .size()
-        .reset_index(name="Clientes")
-    )
+hoy = pd.Timestamp.today().normalize()
 
-    fig_line = px.line(
-        evolucion,
-        x="Fecha_Renovacion",
-        y="Clientes",
-        markers=True,
-        height=450
-    )
+vencen_hoy = (df["Fecha_Renovacion"] == hoy).sum()
+proximos_7 = (
+    (df["Fecha_Renovacion"] >= hoy) &
+    (df["Fecha_Renovacion"] <= hoy + pd.Timedelta(days=7))
+).sum()
 
-    fig_line.update_layout(
-        xaxis_title="Fecha",
-        yaxis_title="Cantidad",
-        hovermode="x unified"
-    )
+c8,c9 = st.columns(2)
 
-    st.plotly_chart(fig_line, use_container_width=True)
+c8.metric("🚨 Vencen Hoy", vencen_hoy)
+c9.metric("⏳ Próximos 7 días", proximos_7)
 
-    st.divider()
-
-    # ======================================================
-    # 3️⃣ DISTRIBUCIÓN POR SEDE
-    # ======================================================
-
-    st.subheader("🏢 Distribución por Sede")
-
-    if "Sede" in df.columns:
-
-        sede_data = df["Sede"].fillna("Sin sede").value_counts().reset_index()
-        sede_data.columns = ["Sede","Clientes"]
-
-        fig_bar = px.bar(
-            sede_data,
-            x="Sede",
-            y="Clientes",
-            text="Clientes",
-            color="Sede",
-            height=450
-        )
-
-        st.plotly_chart(fig_bar, use_container_width=True)
-
-    st.divider()
-
-    # ======================================================
-    # 4️⃣ ACTIVIDAD DIARIA (HEATMAP STYLE)
-    # ======================================================
-
-    st.subheader("📅 Actividad de Renovaciones")
-
-    df["Dia"] = df["Fecha_Renovacion"].dt.day_name()
-
-    orden_dias = [
-        "Monday","Tuesday","Wednesday",
-        "Thursday","Friday","Saturday","Sunday"
-    ]
-
-    actividad = df["Dia"].value_counts().reindex(orden_dias).fillna(0)
-
-    actividad_df = actividad.reset_index()
-    actividad_df.columns = ["Dia","Cantidad"]
-
-    fig_dias = px.bar(
-        actividad_df,
-        x="Dia",
-        y="Cantidad",
-        color="Cantidad",
-        height=400
-    )
-
-    st.plotly_chart(fig_dias, use_container_width=True)
-
-    st.divider()
-
-    # ======================================================
-    # 5️⃣ KPI VISUAL (GA STYLE)
-    # ======================================================
-
-    st.subheader("🚀 Indicadores Clave")
-
-    total = len(df)
-    renovados = conteo_estados["Renovado"]
-    agendados = conteo_estados["Agendado"]
-
-    tasa_conversion = (renovados / total * 100) if total else 0
-    tasa_agendamiento = (agendados / total * 100) if total else 0
-
-    k1,k2 = st.columns(2)
+st.divider()
 
     k1.metric("✅ Conversión Total", f"{tasa_conversion:.1f}%")
     k2.metric("📅 Agendamiento", f"{tasa_agendamiento:.1f}%")
