@@ -378,6 +378,3 @@ c8.metric("🚨 Vencen Hoy", vencen_hoy)
 c9.metric("⏳ Próximos 7 días", proximos_7)
 
 st.divider()
-
-    k1.metric("✅ Conversión Total", f"{tasa_conversion:.1f}%")
-    k2.metric("📅 Agendamiento", f"{tasa_agendamiento:.1f}%")
