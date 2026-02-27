@@ -130,13 +130,13 @@ def link_whatsapp(nombre, placa, telefono, fecha, sede):
 
     fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month-1]} de {fecha.year}"
 
-    mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
+    mensaje = f"""Hola {nombre}, soy Juan José Mestra 
 
 Te escribimos del CDA del Occidente — sede {sede}.
 
 La revisión técnico mecánica de tu vehículo con placa {placa} vence el {fecha_texto}.
 
-¿Deseas agendar tu revisión hoy? 🚗✅"""
+¿Deseas agendar tu revisión hoy? """
 
     mensaje = urllib.parse.quote(mensaje)
 
