@@ -280,9 +280,9 @@ with tab_crm:
 
         fecha_texto = fecha.strftime("%d/%m/%Y")
 
-        mensaje = f"""Hola {nombre}, soy Juan José 👋
+        mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
-Tu vehículo con placa {placa} vence el {fecha_texto}.
+La revisión técnico mecánicaTu vehículo con placa {placa} vence el {fecha_texto}.
 
 ¿Deseas agendar tu revisión? 🚗✅"""
 
