@@ -106,7 +106,7 @@ os.makedirs(carpeta_usuario, exist_ok=True)
 
 tabs_lista = ["📊 CRM"]
 if rol_actual == "admin":
-    tabs_lista += ["👑 Panel Administración", "📈 Dashboard Visual"]
+    tabs_lista += [ "📈 Dashboard Visual","Panel Administración"]
 
 tabs = st.tabs(tabs_lista)
 
