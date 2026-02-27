@@ -132,7 +132,7 @@ def link_whatsapp(nombre, placa, telefono, fecha, sede):
 
     mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
 
-Te escribimos del CDA del Occidente - revisión técnico mecánica — sede {sede}.
+Te escribimos del CDA del Occidente — sede {sede}.
 
 La revisión técnico mecánica de tu vehículo con placa {placa} vence el {fecha_texto}.
 
