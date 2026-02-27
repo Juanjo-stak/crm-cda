@@ -463,4 +463,3 @@ if rol_actual == "admin":
                     "Renovado":"green"
                 }
             )
-            st.plotly_chart(fig_pie, use_container_width=False) llevamos esto
