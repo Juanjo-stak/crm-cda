@@ -141,24 +141,7 @@ La revisión técnico mecánica de tu vehículo con placa {placa} vence el {fech
     mensaje = urllib.parse.quote(mensaje)
 
     return f"https://wa.me/{telefono}?text={mensaje}"
-    # ======================================================
-# SEMAFORO DE VENCIMIENTO
-# ======================================================
-
-def calcular_semaforo(fecha):
-
-    hoy = pd.Timestamp.today().normalize()
-    dias = (fecha.normalize() - hoy).days
-
-    if dias < 0:
-        return "⚫ Vencido", "black"
-    elif dias <= 7:
-        return "🔴 Urgente", "red"
-    elif dias <= 15:
-        return "🟡 Próximo", "orange"
-    else:
-        return "🟢 A tiempo", "green"
-
+   
 # ======================================================
 # ====================== CRM ===========================
 # ======================================================
