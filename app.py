@@ -183,7 +183,42 @@ with tabs[0]:
         "Seleccionar base",
         [x[0] for x in bases]
     )
+function obtenerMetricas() {
+    const data = JSON.parse(localStorage.getItem("clientes")) || [];
 
+    const hoy = new Date().toISOString().split("T")[0];
+    const mesActual = new Date().getMonth();
+    const anioActual = new Date().getFullYear();
+
+    let enviados = 0;
+    let hoyCount = 0;
+    let mesCount = 0;
+
+    data.forEach(cliente => {
+
+        if (cliente.whatsappEnviado) enviados++;
+
+        if (cliente.fecha_revision === hoy) {
+            hoyCount++;
+        }
+
+        const fecha = new Date(cliente.fecha_revision);
+
+        if (
+            fecha.getMonth() === mesActual &&
+            fecha.getFullYear() === anioActual
+        ) {
+            mesCount++;
+        }
+    });
+
+    return {
+        totalClientes: data.length,
+        mensajesEnviados: enviados,
+        renovacionesHoy: hoyCount,
+        renovacionesMes: mesCount
+    };
+}
     ARCHIVO = dict(bases)[seleccion]
      # ==================================================
     # ELIMINAR BASE
