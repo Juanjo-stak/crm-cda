@@ -115,20 +115,7 @@ tabs = st.tabs(tabs_lista)
 # ======================================================
 
 def link_whatsapp(nombre, placa, telefono, fecha, sede):
-    def semaforo(fecha):
-    hoy = pd.Timestamp.today().normalize()
-    dias = (fecha - hoy).days
-
-    if dias <= 3:
-        return "🔴 URGENTE"
-    elif dias <= 7:
-        return "🟡 Próximo"
-    else:
-        return "🟢 Normal"
-
-    if pd.isna(telefono):
-        return None
-
+    
     telefono = str(telefono).replace(".0","").replace(" ","").replace("-","")
 
     if not telefono.startswith("57"):
@@ -151,7 +138,16 @@ La revisión técnico mecánica de tu vehículo con placa {placa} vence el {fech
     mensaje = urllib.parse.quote(mensaje)
 
     return f"https://wa.me/{telefono}?text={mensaje}"
+def semaforo(fecha):
+    hoy = pd.Timestamp.today().normalize()
+    dias = (fecha - hoy).days
 
+    if dias <= 3:
+        return "🔴 URGENTE"
+    elif dias <= 7:
+        return "🟡 Próximo"
+    else:
+        return "🟢 Normal"
 # ======================================================
 # ====================== CRM ===========================
 # ======================================================
