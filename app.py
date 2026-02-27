@@ -57,7 +57,7 @@ if "rol" not in st.session_state:
 # ======================================================
 
 def pantalla_login():
-    st.title("🔐 CRM CDA")
+    st.title("CRM CDA")
 
     user = st.text_input("Usuario")
     pwd = st.text_input("Contraseña", type="password")
@@ -84,10 +84,10 @@ if not st.session_state.login:
 usuario_actual = st.session_state.usuario
 rol_actual = st.session_state.rol
 
-st.title("🚗 Renovaciones CDA")
+st.title(" Renovaciones CDA")
 st.write(f"👤 Usuario: {usuario_actual} | Rol: {rol_actual}")
 
-if st.button("🚪 Cerrar sesión"):
+if st.button("Cerrar sesión"):
     st.session_state.login = False
     st.session_state.usuario = None
     st.session_state.rol = None
@@ -104,7 +104,7 @@ os.makedirs(carpeta_usuario, exist_ok=True)
 # TABS
 # ======================================================
 
-tabs_lista = ["📊 CRM"]
+tabs_lista = [" CRM"]
 if rol_actual == "admin":
     tabs_lista += ["👑 Panel Administración", "📈 Dashboard Visual"]
 
@@ -130,13 +130,13 @@ def link_whatsapp(nombre, placa, telefono, fecha, sede):
 
     fecha_texto = f"{dias[fecha.weekday()]} {fecha.day} de {meses[fecha.month-1]} de {fecha.year}"
 
-    mensaje = f"""Hola {nombre}, soy Juan José Mestra 👋
+    mensaje = f"""Hola {nombre}, soy Juan José Mestra 
 
 Te escribimos del CDA del Occidente — sede {sede}.
 
 La revisión técnico mecánica de tu vehículo con placa {placa} vence el {fecha_texto}.
 
-¿Deseas agendar tu revisión hoy? 🚗✅"""
+¿Deseas agendar tu revisión hoy? """
 
     mensaje = urllib.parse.quote(mensaje)
 
