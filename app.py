@@ -4,6 +4,7 @@ import urllib.parse
 import os
 import json
 import shutil
+import plotly.express as px  # Para gráficos interactivos
 
 # ======================================================
 # CONFIGURACIÓN
@@ -110,10 +111,18 @@ os.makedirs(carpeta_usuario, exist_ok=True)
 # TABS
 # ======================================================
 
+tabs_lista = ["📊 CRM"]
 if rol_actual == "admin":
-    tab_crm, tab_admin = st.tabs(["📊 CRM", "👑 Panel Administración"])
-else:
-    tab_crm = st.tabs(["📊 CRM"])[0]
+    tabs_lista.append("👑 Panel Administración")
+    tabs_lista.append("📈 Dashboard Visual")  # Nueva pestaña
+
+tabs_objs = st.tabs(tabs_lista)
+
+# Asignar objetos a variables según rol
+tab_crm = tabs_objs[0]
+if rol_actual == "admin":
+    tab_admin = tabs_objs[1]
+    tab_dashboard = tabs_objs[2]
 
 # ======================================================
 # ====================== CRM ===========================
@@ -158,7 +167,7 @@ with tab_crm:
     ARCHIVO = dict(bases_disponibles)[seleccion]
 
     # ==================================================
-    # ELIMINAR BASE (YA AGREGADO ANTES)
+    # ELIMINAR BASE
     # ==================================================
 
     st.sidebar.divider()
@@ -256,7 +265,7 @@ with tab_crm:
     st.divider()
 
     # ==================================================
-    # WHATSAPP
+    # WHATSAPP & LLAMAR
     # ==================================================
 
     def link_whatsapp(nombre, placa, telefono, fecha):
@@ -399,3 +408,82 @@ if rol_actual == "admin":
                         shutil.rmtree(carpeta_eliminar)
                     st.success("Usuario eliminado")
                     st.rerun()
+
+# ======================================================
+# TAB DASHBOARD VISUAL (SOLO ADMIN)
+# ======================================================
+
+if rol_actual == "admin":
+
+    with tab_dashboard:
+
+        st.header("📈 Dashboard Visual de Estados")
+
+        if not bases_disponibles:
+            st.warning("No hay bases cargadas")
+        else:
+            # Contar estados
+            conteo_estados = df["Estado"].value_counts().reindex(["Pendiente","Agendado","Renovado"], fill_value=0)
+
+            # ====== Gráfico de barras cuadrado ======
+            st.subheader("Gráfico de barras de Estados")
+            fig_bar = px.bar(
+                x=conteo_estados.index,
+                y=conteo_estados.values,
+                text=conteo_estados.values,
+                width=400,  # ancho cuadrado
+                height=400, # alto cuadrado
+                color=conteo_estados.index,
+                color_discrete_map={
+                    "Pendiente":"red",
+                    "Agendado":"yellow",
+                    "Renovado":"green"
+                }
+            )
+            fig_bar.update_layout(
+                showlegend=False,
+                yaxis_title="Cantidad",
+                xaxis_title="Estado",
+                margin=dict(l=20,r=20,t=30,b=20)
+            )
+            st.plotly_chart(fig_bar, use_container_width=False)
+
+            # ====== Gráfico de pastel cuadrado ======
+            st.subheader("Gráfico de pastel de Estados")
+            fig_pie = px.pie(
+                names=conteo_estados.index,
+                values=conteo_estados.values,
+                title="Proporción de Estados",
+                width=400,
+                height=400,
+                color=conteo_estados.index,
+                color_discrete_map={
+                    "Pendiente":"red",
+                    "Agendado":"yellow",
+                    "Renovado":"green"
+                }
+            )
+            st.plotly_chart(fig_pie, use_container_width=False)
+
+            # ====== DESCARGA DE DATOS ======
+            st.subheader("💾 Descargar datos filtrados")
+            
+            # CSV
+            csv = df_filtrado.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Descargar CSV",
+                data=csv,
+                file_name='datos_filtrados.csv',
+                mime='text/csv'
+            )
+
+            # Excel
+            excel_path = "datos_filtrados.xlsx"
+            df_filtrado.to_excel(excel_path, index=False)
+            with open(excel_path, "rb") as f:
+                st.download_button(
+                    label="Descargar Excel",
+                    data=f,
+                    file_name="datos_filtrados.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
