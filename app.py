@@ -487,4 +487,3 @@ if rol_actual == "admin":
                     file_name="datos_filtrados.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-
