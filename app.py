@@ -326,60 +326,8 @@ if rol_actual == "admin":
 
         for user,datos in usuarios.items():
             st.write(f"👤 {user} ({datos['rol']})")
-            # ================= DASHBOARD PROFESIONAL =================
-
-st.markdown("## 📊 Dashboard de Gestión")
-
-total = len(df)
-
-pendientes = (df["Estado"]=="Pendiente").sum()
-agendados = (df["Estado"]=="Agendado").sum()
-renovados = (df["Estado"]=="Renovado").sum()
-
-contactados = agendados + renovados
-
-# ===== Métricas principales =====
-c1,c2,c3,c4 = st.columns(4)
-
-c1.metric("Total Clientes", total)
-c2.metric("Pendientes", pendientes)
-c3.metric("Agendados", agendados)
-c4.metric("Renovados", renovados)
-
-st.divider()
-
-# ===== Métricas comerciales =====
-
-tasa_contacto = (contactados/total*100) if total else 0
-tasa_agendamiento = (agendados/contactados*100) if contactados else 0
-tasa_renovacion = (renovados/total*100) if total else 0
-
-c5,c6,c7 = st.columns(3)
-
-c5.metric("📞 Tasa Contacto", f"{tasa_contacto:.1f}%")
-c6.metric("📅 Tasa Agendamiento", f"{tasa_agendamiento:.1f}%")
-c7.metric("✅ Tasa Renovación", f"{tasa_renovacion:.1f}%")
-
-st.divider()
-
-# ===== Métricas de urgencia =====
-
-hoy = pd.Timestamp.today().normalize()
-
-vencen_hoy = (df["Fecha_Renovacion"] == hoy).sum()
-proximos_7 = (
-    (df["Fecha_Renovacion"] >= hoy) &
-    (df["Fecha_Renovacion"] <= hoy + pd.Timedelta(days=7))
-).sum()
-
-c8,c9 = st.columns(2)
-
-c8.metric("🚨 Vencen Hoy", vencen_hoy)
-c9.metric("⏳ Próximos 7 días", proximos_7)
-
-st.divider()
-
-with tab_dashboard:
+            
+            with tab_dashboard:
 
     st.header("📈 Analytics Comercial CDA")
 
