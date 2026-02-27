@@ -228,16 +228,7 @@ with tabs[0]:
     if "Sede" not in df.columns:
         df["Sede"] = "Sin sede"
 
-    # ================= DASHBOARD =================
-
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Total", len(df))
-    c2.metric("Pendientes", (df["Estado"]=="Pendiente").sum())
-    c3.metric("Agendados", (df["Estado"]=="Agendado").sum())
-    c4.metric("Renovados", (df["Estado"]=="Renovado").sum())
-
-    st.divider()
-
+   
     # ================= FILTROS =================
 
     col1,col2,col3 = st.columns(3)
